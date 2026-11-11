@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ひょっこりアニメーション</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 背景とスクロールを透明化・無効化 */
+        html, body {
+            background-color: transparent !important;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* アニメーション用ステージ */
+        #stage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            overflow: hidden;
+        }
+
+        /* 出現キャラクター */
+        .peek-character {
+            position: absolute;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            will-change: transform;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 下から */
+        .dir-bottom {
+            bottom: 0;
+            transform: translateY(100%);
+        }
+        .dir-bottom.peeking {
+            transform: translateY(calc(100% - var(--peek-depth, 60%))) rotate(var(--peek-rotate, 0deg));
+        }
+
+        /* 上から (逆立ち: 180度回転) */
+        .dir-top {
+            top: 0;
+            transform: translateY(-100%);
+        }
+        .dir-top.peeking {
+            transform: translateY(calc(-100% + var(--peek-depth, 60%))) rotate(calc(180deg + var(--peek-rotate, 0deg)));
+        }
+
+        /* 左から */
+        .dir-left {
+            left: 0;
+            transform: translateX(-100%);
+        }
+        .dir-left.peeking {
+            transform: translateX(calc(-100% + var(--peek-depth, 60%))) rotate(var(--peek-rotate, 0deg));
+        }
+
+        /* 右から */
+        .dir-right {
+            right: 0;
+            transform: translateX(100%);
+        }
+        .dir-right.peeking {
+            transform: translateX(calc(100% - var(--peek-depth, 60%))) rotate(var(--peek-rotate, 0deg));
+        }
+
+        /* タップしてサッと引っ込む時のアニメーション */
+        .retreating {
+            transition: transform 0.15s ease-in !important;
+        }
+
+        /* 画面右上の薄い設定ボタン */
+        #settings-toggle-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 10000;
+            opacity: 0.2;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            background: transparent !important;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            padding: 4px;
+            user-select: none;
+            touch-action: manipulation;
+            outline: none;
+        }
+
+        #settings-toggle-btn:hover,
+        #settings-toggle-btn:focus,
+        #settings-toggle-btn:active {
+            opacity: 0.9;
+            transform: scale(1.15) rotate(30deg);
+        }
+
+        /* モーダルダイアログ */
+        #settings-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        #settings-modal.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 設定トグルボタン -->
+    <button id="settings-toggle-btn" aria-label="設定">⚙️</button>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal" class="flex">
+        <div class="bg-gray-900/90 text-white rounded-2xl p-6 max-w-sm w-full border border-gray-700/60 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h2 class="text-lg font-bold flex items-center gap-2">⚙️ アニメーション設定</h2>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-white text-xl p-1">&times;</button>
+            </div>
+
+            <!-- 画像変更 -->
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">キャラクター画像</label>
+                <div class="flex items-center gap-3">
+                    <img id="preview-img" class="w-12 h-12 rounded bg-gray-800 object-contain p-1 border border-gray-700" src="" alt="プレビュー">
+                    <label class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-lg font-medium transition">
+                        画像を選択 (PNG)
+                        <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="hidden">
+                    </label>
+                    <button id="reset-img-btn" class="text-xs text-gray-400 hover:text-red-400 underline">リセット</button>
+                </div>
+            </div>
+
+            <!-- 出現間隔 (最大30秒) -->
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                    <label class="font-semibold text-gray-400 uppercase tracking-wider">出現間隔の最大値</label>
+                    <span id="max-interval-val" class="font-mono text-blue-400 font-bold">30秒</span>
+                </div>
+                <input type="range" id="max-interval-range" min="3" max="30" step="1" value="30" class="w-full accent-blue-500 cursor-pointer">
+            </div>
+
+            <!-- キャラクタースケール -->
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                    <label class="font-semibold text-gray-400 uppercase tracking-wider">キャラの大きさ</label>
+                    <span id="size-val" class="font-mono text-blue-400 font-bold">180px</span>
+                </div>
+                <input type="range" id="size-range" min="80" max="350" step="10" value="180" class="w-full accent-blue-500 cursor-pointer">
+            </div>
+
+            <!-- 効果音スイッチ & 音量調整 -->
+            <div class="space-y-2 pt-1 border-t border-gray-800">
+                <div class="flex items-center justify-between text-xs">
+                    <label for="sound-toggle" class="font-semibold text-gray-400 uppercase tracking-wider cursor-pointer">効果音（SE）</label>
+                    <input type="checkbox" id="sound-toggle" checked class="w-4 h-4 accent-blue-500 cursor-pointer">
+                </div>
+                <div class="flex items-center gap-2 text-xs pt-1">
+                    <label class="text-gray-400">音量</label>
+                    <input type="range" id="volume-range" min="0" max="1" step="0.05" value="0.25" class="w-full accent-blue-500 cursor-pointer">
+                    <span id="volume-val" class="font-mono text-blue-400 font-bold w-10 text-right">25%</span>
+                </div>
+            </div>
+
+            <button id="save-modal-btn" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition">
+                設定を閉じて適用
+            </button>
+        </div>
+    </div>
+
+    <!-- アニメーションステージ -->
+    <div id="stage"></div>
+
+    <script>
+        // デフォルトキャラクター (透過SVG Data URI)
+        const DEFAULT_CHARACTER = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="110" r="70" fill="%23FFB74D"/><polygon points="40,60 70,20 85,70" fill="%23FFB74D"/><polygon points="48,58 68,28 78,65" fill="%23FF8A65"/><polygon points="160,60 130,20 115,70" fill="%23FFB74D"/><polygon points="152,58 132,28 122,65" fill="%23FF8A65"/><ellipse cx="75" cy="100" rx="9" ry="12" fill="%2337474F"/><ellipse cx="125" cy="100" rx="9" ry="12" fill="%2337474F"/><circle cx="72" cy="96" r="3" fill="white"/><circle cx="122" cy="96" r="3" fill="white"/><polygon points="100,112 93,105 107,105" fill="%23E57373"/><path d="M 90 118 Q 100 128 100 118 Q 100 128 110 118" stroke="%2337474F" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="55" cy="115" rx="10" ry="6" fill="%23FF8A65" opacity="0.5"/><ellipse cx="145" cy="115" rx="10" ry="6" fill="%23FF8A65" opacity="0.5"/></svg>`;
+
+        const STORAGE_KEY = 'peek_app_settings';
+
+        // 設定パラメータ
+        const CONFIG = {
+            minInterval: 1.0,  // 最小間隔 (秒)
+            maxInterval: 30.0, // 最大間隔 (秒)
+            duration: 1.8,     // 滞在表示時間 (秒)
+            size: 180,         // キャラクタースケール (px)
+            characterImg: DEFAULT_CHARACTER,
+            soundEnabled: true,
+            volume: 0.25       // 音量 (0.0 ~ 1.0)
+        };
+
+        // localStorage への自動保存
+        function saveSettingsToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(CONFIG));
+            } catch (e) {
+                console.warn('localStorageへの保存に失敗しました（容量制限の可能性があります）', e);
+            }
+        }
+
+        // localStorage からの設定復元
+        function loadSettingsFromStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    Object.assign(CONFIG, parsed);
+                }
+            } catch (e) {
+                console.warn('localStorageからの読み込みに失敗しました', e);
+            }
+        }
+
+        // Web Audio API による効果音生成
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+            }
+
+            // ひょっこり現れる時のポイン音
+            playPop() {
+                if (!CONFIG.soundEnabled) return;
+                try {
+                    this.init();
+                    if (this.ctx.state === 'suspended') this.ctx.resume();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    const now = this.ctx.currentTime;
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.12);
+                    gain.gain.setValueAtTime(CONFIG.volume, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } catch(e) {}
+            }
+
+            // 引っ込む音
+            playHide() {
+                if (!CONFIG.soundEnabled) return;
+                try {
+                    this.init();
+                    if (this.ctx.state === 'suspended') this.ctx.resume();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    const now = this.ctx.currentTime;
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.1);
+                    gain.gain.setValueAtTime(CONFIG.volume * 0.8, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } catch(e) {}
+            }
+
+            // クリックして驚いた音
+            playSurprise() {
+                if (!CONFIG.soundEnabled) return;
+                try {
+                    this.init();
+                    if (this.ctx.state === 'suspended') this.ctx.resume();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    const now = this.ctx.currentTime;
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.linearRampToValueAtTime(900, now + 0.05);
+                    osc.frequency.linearRampToValueAtTime(300, now + 0.15);
+                    gain.gain.setValueAtTime(CONFIG.volume * 1.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                } catch(e) {}
+            }
+        }
+
+        const SE = new SoundEffects();
+        const stage = document.getElementById('stage');
+
+        // ひょっこりアニメーション生成関数
+        function createPeek() {
+            const directions = ['bottom', 'top', 'left', 'right'];
+            const dir = directions[Math.floor(Math.random() * directions.length)];
+
+            // 要素作成
+            const el = document.createElement('div');
+            el.className = `peek-character dir-${dir}`;
+            
+            const img = document.createElement('img');
+            img.src = CONFIG.characterImg;
+            img.style.width = `${CONFIG.size}px`;
+            img.style.height = `${CONFIG.size}px`;
+            img.style.objectFit = 'contain';
+            img.style.filter = 'drop-shadow(0 8px 16px rgba(0,0,0,0.15))';
+
+            el.appendChild(img);
+
+            // 画面のランダム位置 (10% ~ 80%)
+            const posPercent = Math.floor(Math.random() * 70) + 10;
+            
+            // 方向に応じた回転角度の計算
+            // 左から: プラス方向 (+5 ~ +25度)
+            // 右から: マイナス方向 (-25 ~ -5度)
+            // 上下: 従来どおりランダムな微傾き (-15 ~ +15度)
+            let rotateDeg;
+            if (dir === 'left') {
+                rotateDeg = Math.random() * 20 + 5;
+            } else if (dir === 'right') {
+                rotateDeg = -(Math.random() * 20 + 5);
+            } else {
+                rotateDeg = Math.random() * 30 - 15;
+            }
+
+            el.style.setProperty('--peek-rotate', `${rotateDeg}deg`);
+            
+            // 顔を出す深さ (45% ~ 65%)
+            const depth = Math.floor(Math.random() * 20) + 45;
+            el.style.setProperty('--peek-depth', `${depth}%`);
+
+            if (dir === 'bottom' || dir === 'top') {
+                el.style.left = `${posPercent}vw`;
+            } else {
+                el.style.top = `${posPercent}vh`;
+            }
+
+            stage.appendChild(el);
+
+            let isClicked = false;
+
+            // クリック/タップで驚いて即座に隠れる
+            el.addEventListener('pointerdown', () => {
+                if (isClicked) return;
+                isClicked = true;
+                SE.playSurprise();
+                el.classList.add('retreating');
+                el.classList.remove('peeking');
+                
+                setTimeout(() => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 150);
+            });
+
+            // 出現アニメーション開始
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    el.classList.add('peeking');
+                    SE.playPop();
+                });
+            });
+
+            // 指定時間後に自動で引っ込む
+            setTimeout(() => {
+                if (!isClicked && el.parentNode) {
+                    el.classList.remove('peeking');
+                    SE.playHide();
+
+                    setTimeout(() => {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    }, 400);
+                }
+            }, CONFIG.duration * 1000);
+        }
+
+        // 次のひょっこりをスケジューリング (1〜maxInterval秒のランダム間隔)
+        let timerId = null;
+        function scheduleNextPeek() {
+            if (timerId) clearTimeout(timerId);
+            const randomDelay = (Math.random() * (CONFIG.maxInterval - CONFIG.minInterval) + CONFIG.minInterval) * 1000;
+            timerId = setTimeout(() => {
+                createPeek();
+                scheduleNextPeek();
+            }, randomDelay);
+        }
+
+        // --- モーダル・UI制御 ---
+        const modal = document.getElementById('settings-modal');
+        const toggleBtn = document.getElementById('settings-toggle-btn');
+        const closeBtn = document.getElementById('close-modal-btn');
+        const saveBtn = document.getElementById('save-modal-btn');
+        
+        const previewImg = document.getElementById('preview-img');
+        const fileInput = document.getElementById('file-input');
+        const resetImgBtn = document.getElementById('reset-img-btn');
+        const maxIntervalRange = document.getElementById('max-interval-range');
+        const maxIntervalVal = document.getElementById('max-interval-val');
+        const sizeRange = document.getElementById('size-range');
+        const sizeVal = document.getElementById('size-val');
+        const soundToggle = document.getElementById('sound-toggle');
+        const volumeRange = document.getElementById('volume-range');
+        const volumeVal = document.getElementById('volume-val');
+
+        function updateUIValues() {
+            previewImg.src = CONFIG.characterImg;
+            maxIntervalRange.value = CONFIG.maxInterval;
+            maxIntervalVal.textContent = `${CONFIG.maxInterval}秒`;
+            sizeRange.value = CONFIG.size;
+            sizeVal.textContent = `${CONFIG.size}px`;
+            soundToggle.checked = CONFIG.soundEnabled;
+            volumeRange.value = CONFIG.volume;
+            volumeVal.textContent = `${Math.round(CONFIG.volume * 100)}%`;
+        }
+
+        function openModal() {
+            updateUIValues();
+            modal.classList.add('open');
+        }
+
+        function closeModal() {
+            modal.classList.remove('open');
+        }
+
+        toggleBtn.addEventListener('click', openModal);
+        closeBtn.addEventListener('click', closeModal);
+        saveBtn.addEventListener('click', closeModal);
+
+        // 入力リスナー & 自動保存処理
+        maxIntervalRange.addEventListener('input', (e) => {
+            CONFIG.maxInterval = parseFloat(e.target.value);
+            maxIntervalVal.textContent = `${CONFIG.maxInterval}秒`;
+            saveSettingsToStorage();
+            scheduleNextPeek();
+        });
+
+        sizeRange.addEventListener('input', (e) => {
+            CONFIG.size = parseInt(e.target.value, 10);
+            sizeVal.textContent = `${CONFIG.size}px`;
+            saveSettingsToStorage();
+        });
+
+        soundToggle.addEventListener('change', (e) => {
+            CONFIG.soundEnabled = e.target.checked;
+            saveSettingsToStorage();
+        });
+
+        volumeRange.addEventListener('input', (e) => {
+            CONFIG.volume = parseFloat(e.target.value);
+            volumeVal.textContent = `${Math.round(CONFIG.volume * 100)}%`;
+            saveSettingsToStorage();
+        });
+
+        // 画像アップロード処理
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    CONFIG.characterImg = event.target.result;
+                    previewImg.src = CONFIG.characterImg;
+                    saveSettingsToStorage();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        resetImgBtn.addEventListener('click', () => {
+            CONFIG.characterImg = DEFAULT_CHARACTER;
+            previewImg.src = DEFAULT_CHARACTER;
+            fileInput.value = '';
+            saveSettingsToStorage();
+        });
+
+        // 起動時に初回実行 & ループ開始
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettingsFromStorage();
+            updateUIValues();
+            setTimeout(() => {
+                createPeek();
+                scheduleNextPeek();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
