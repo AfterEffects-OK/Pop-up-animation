@@ -279,10 +279,10 @@
     <script>
         // 設定オブジェクト＆デフォルト値
         const config = {
-            mediaUrl: localStorage.getItem('peek_media') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+            const config = {
+            mediaUrl: localStorage.getItem('peek_media') || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="110" r="70" fill="%23FFD1DC"/><ellipse cx="50" cy="90" rx="16" ry="35" fill="%23FFB6C1" transform="rotate(-25 50 90)"/><ellipse cx="50" cy="92" rx="10" ry="25" fill="%23FF91A4" transform="rotate(-25 50 92)"/><ellipse cx="150" cy="90" rx="16" ry="35" fill="%23FFB6C1" transform="rotate(25 150 90)"/><ellipse cx="150" cy="92" rx="10" ry="25" fill="%23FF91A4" transform="rotate(25 150 92)"/><ellipse cx="75" cy="105" rx="10" ry="13" fill="%234A3B32"/><circle cx="72" cy="100" r="4" fill="white"/><circle cx="78" cy="110" r="1.5" fill="white"/><ellipse cx="125" cy="105" rx="10" ry="13" fill="%234A3B32"/><circle cx="122" cy="100" r="4" fill="white"/><circle cx="128" cy="110" r="1.5" fill="white"/><polygon points="100,118 95,112 105,112" fill="%23FF6B8B"/><path d="M 90 123 Q 100 132 110 123" stroke="%234A3B32" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="58" cy="122" rx="12" ry="7" fill="%23FF8DA1" opacity="0.6"/><ellipse cx="142" cy="122" rx="12" ry="7" fill="%23FF8DA1" opacity="0.6"/></svg>`,
             mediaType: localStorage.getItem('peek_type') || 'image',
-            size: parseInt(localStorage.getItem('peek_size')) || 150,
-            interval: parseInt(localStorage.getItem('peek_interval')) || 10,
+            size: parseInt(localStorage.getItem('peek_size')) || 150,interval: parseInt(localStorage.getItem('peek_interval')) || 10,
             duration: parseFloat(localStorage.getItem('peek_duration')) || 3.0,
             depth: parseInt(localStorage.getItem('peek_depth')) || 40,
             variance: parseInt(localStorage.getItem('peek_variance')) || 15,
