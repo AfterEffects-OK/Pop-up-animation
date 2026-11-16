@@ -51,10 +51,10 @@
             transform: translateY(calc(100% - var(--peek-depth, 60%))) rotate(var(--peek-rotate, 0deg));
         }
 
-        /* 上から (逆立ち: 180度回転) */
+        /* 上から (最初から逆立ち: 180度回転させた状態で待機) */
         .dir-top {
             top: 0;
-            transform: translateY(-100%);
+            transform: translateY(-100%) rotate(calc(180deg + var(--peek-rotate, 0deg)));
         }
         .dir-top.peeking {
             transform: translateY(calc(-100% + var(--peek-depth, 60%))) rotate(calc(180deg + var(--peek-rotate, 0deg)));
