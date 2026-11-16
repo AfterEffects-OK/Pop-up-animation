@@ -138,14 +138,14 @@
 
     <!-- 設定モーダル -->
     <div id="settings-modal" class="flex">
-        <div class="bg-gray-900/90 text-white rounded-2xl p-6 max-w-sm w-full border border-gray-700/60 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+        <div class="bg-gray-900/90 text-white rounded-2xl p-6 max-w-sm w-full border border-gray-700/60 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-gray-800 pb-3">
                 <h2 class="text-lg font-bold flex items-center gap-2">⚙️ アニメーション設定</h2>
                 <button id="close-modal-btn" class="text-gray-400 hover:text-white text-xl p-1">&times;</button>
             </div>
 
             <!-- 画像変更 -->
-            <div class="space-y-2">
+            <div class="space-y-1.5">
                 <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">キャラクター画像</label>
                 <div class="flex items-center gap-3">
                     <img id="preview-img" class="w-12 h-12 rounded bg-gray-800 object-contain p-1 border border-gray-700" src="" alt="プレビュー">
@@ -158,7 +158,7 @@
             </div>
 
             <!-- 出現間隔 (最大30秒) -->
-            <div class="space-y-2">
+            <div class="space-y-1.5">
                 <div class="flex justify-between text-xs">
                     <label class="font-semibold text-gray-400 uppercase tracking-wider">出現間隔の最大値</label>
                     <span id="max-interval-val" class="font-mono text-blue-400 font-bold">30秒</span>
@@ -166,17 +166,26 @@
                 <input type="range" id="max-interval-range" min="3" max="30" step="1" value="30" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
-            <!-- 滞在時間（秒） -->
-            <div class="space-y-2">
+            <!-- 滞在時間（基準） -->
+            <div class="space-y-1.5">
                 <div class="flex justify-between text-xs">
-                    <label for="duration-range" class="font-semibold text-gray-400 uppercase tracking-wider">滞在時間（じっとする時間）</label>
+                    <label for="duration-range" class="font-semibold text-gray-400 uppercase tracking-wider">滞在時間（基準）</label>
                     <span id="duration-val" class="font-mono text-blue-400 font-bold">1.8秒</span>
                 </div>
                 <input type="range" id="duration-range" min="0.5" max="5.0" step="0.1" value="1.8" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
+            <!-- 滞在時間のランダム揺らぎ幅 -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between text-xs">
+                    <label for="duration-range-slider" class="font-semibold text-gray-400 uppercase tracking-wider">滞在時間の揺らぎ幅</label>
+                    <span id="duration-range-value" class="font-mono text-blue-400 font-bold">±0.6秒</span>
+                </div>
+                <input type="range" id="duration-range-slider" min="0.0" max="2.0" value="0.6" step="0.1" class="w-full accent-blue-500 cursor-pointer">
+            </div>
+
             <!-- キャラクタースケール -->
-            <div class="space-y-2">
+            <div class="space-y-1.5">
                 <div class="flex justify-between text-xs">
                     <label class="font-semibold text-gray-400 uppercase tracking-wider">キャラの大きさ</label>
                     <span id="size-val" class="font-mono text-blue-400 font-bold">180px</span>
@@ -185,7 +194,7 @@
             </div>
 
             <!-- ひょっこり具合（基準） -->
-            <div class="space-y-2">
+            <div class="space-y-1.5">
                 <div class="flex justify-between text-xs">
                     <label for="depthSlider" class="font-semibold text-gray-400 uppercase tracking-wider">ひょっこり具合（基準）</label>
                     <span id="depthValue" class="font-mono text-blue-400 font-bold">55%</span>
@@ -193,17 +202,17 @@
                 <input type="range" id="depthSlider" min="20" max="90" value="55" step="1" class="w-full accent-blue-500 cursor-pointer">
             </div>
             
-            <!-- ランダムの揺らぎ幅 -->
-            <div class="space-y-2 mt-3">
+            <!-- ひょっこり具合のランダム揺らぎ幅 -->
+            <div class="space-y-1.5">
                 <div class="flex justify-between text-xs">
-                    <label for="rangeSlider" class="font-semibold text-gray-400 uppercase tracking-wider">ランダムの揺らぎ幅</label>
+                    <label for="rangeSlider" class="font-semibold text-gray-400 uppercase tracking-wider">ひょっこり具合の揺らぎ幅</label>
                     <span id="rangeValue" class="font-mono text-blue-400 font-bold">±10%</span>
                 </div>
                 <input type="range" id="rangeSlider" min="0" max="30" value="10" step="1" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <!-- 効果音スイッチ & 音量調整 -->
-            <div class="space-y-2 pt-1 border-t border-gray-800">
+            <div class="space-y-1.5 pt-1 border-t border-gray-800">
                 <div class="flex items-center justify-between text-xs">
                     <label for="sound-toggle" class="font-semibold text-gray-400 uppercase tracking-wider cursor-pointer">効果音（SE）</label>
                     <input type="checkbox" id="sound-toggle" checked class="w-4 h-4 accent-blue-500 cursor-pointer">
@@ -215,7 +224,7 @@
                 </div>
             </div>
 
-            <button id="save-modal-btn" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition">
+            <button id="save-modal-btn" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition mt-2">
                 設定を閉じて適用
             </button>
         </div>
@@ -232,13 +241,14 @@
 
         // 設定パラメータ
         const CONFIG = {
-            minInterval: 1.0,  // 最小間隔 (秒)
-            maxInterval: 30.0, // 最大間隔 (秒)
-            duration: 1.8,     // 滞在表示時間 (秒)
-            size: 180,         // キャラクタースケール (px)
+            minInterval: 1.0,           // 最小間隔 (秒)
+            maxInterval: 30.0,          // 最大間隔 (秒)
+            duration: 1.8,              // 滞在表示時間 基準 (秒)
+            durationRange: 0.6,         // 滞在時間の揺らぎ幅 (±秒)
+            size: 180,                  // キャラクタースケール (px)
             characterImg: DEFAULT_CHARACTER,
             soundEnabled: true,
-            volume: 0.25       // 音量 (0.0 ~ 1.0)
+            volume: 0.25                // 音量 (0.0 ~ 1.0)
         };
 
         // localStorage への自動保存
@@ -246,7 +256,7 @@
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(CONFIG));
             } catch (e) {
-                console.warn('localStorageへの保存に失敗しました（容量制限の可能性があります）', e);
+                console.warn('localStorageへの保存に失敗しました', e);
             }
         }
 
@@ -341,17 +351,6 @@
         const SE = new SoundEffects();
         const stage = document.getElementById('stage');
 
-        // ランダム揺らぎ幅スライダーの連動
-        const rangeSlider = document.getElementById('rangeSlider');
-        const rangeValue = document.getElementById('rangeValue');
-        
-        if (rangeSlider && rangeValue) {
-          rangeValue.textContent = `±${rangeSlider.value}%`;
-          rangeSlider.addEventListener('input', (e) => {
-            rangeValue.textContent = `±${e.target.value}%`;
-          });
-        }
-
         // ひょっこりアニメーション生成関数
         function createPeek() {
             const directions = ['bottom', 'top', 'left', 'right'];
@@ -385,15 +384,15 @@
 
             el.style.setProperty('--peek-rotate', `${rotateDeg}deg`);
             
-            // スライダーから基準値と揺らぎ幅を取得する
-            const slider = document.getElementById('depthSlider');
+            // ひょっこり具合の計算 (基準 + 揺らぎ)
+            const depthSlider = document.getElementById('depthSlider');
             const rangeSliderElem = document.getElementById('rangeSlider');
             
-            const baseDepth = slider ? parseInt(slider.value, 10) : 55;
-            const range = rangeSliderElem ? parseInt(rangeSliderElem.value, 10) : 10;
+            const baseDepth = depthSlider ? parseInt(depthSlider.value, 10) : 55;
+            const depthRange = rangeSliderElem ? parseInt(rangeSliderElem.value, 10) : 10;
             
-            const randomOffset = (Math.random() * (range * 2)) - range; 
-            let depth = Math.round(baseDepth + randomOffset);
+            const randomDepthOffset = (Math.random() * (depthRange * 2)) - depthRange; 
+            let depth = Math.round(baseDepth + randomDepthOffset);
             depth = Math.max(20, Math.min(90, depth));
             el.style.setProperty('--peek-depth', `${depth}%`);
 
@@ -428,7 +427,16 @@
                 });
             });
 
-            // 指定時間後に自動で引っ込む（設定された滞在時間を反映）
+            // 今回の個別滞在時間（基準 + 揺らぎ）の計算
+            const durSlider = document.getElementById('duration-range');
+            const durRangeSlider = document.getElementById('duration-range-slider');
+            const baseDur = durSlider ? parseFloat(durSlider.value) : 1.8;
+            const durRng = durRangeSlider ? parseFloat(durRangeSlider.value) : 0.6;
+            
+            let currentDuration = baseDur + ((Math.random() * (durRng * 2)) - durRng);
+            currentDuration = Math.max(0.3, currentDuration); // 最低0.3秒は確保
+
+            // 指定時間後に自動で引っ込む
             setTimeout(() => {
                 if (!isClicked && el.parentNode) {
                     el.classList.remove('peeking');
@@ -438,7 +446,7 @@
                         if (el.parentNode) el.parentNode.removeChild(el);
                     }, 400);
                 }
-            }, CONFIG.duration * 1000);
+            }, currentDuration * 1000);
         }
 
         // 次のひょっこりをスケジューリング
@@ -461,24 +469,47 @@
         const previewImg = document.getElementById('preview-img');
         const fileInput = document.getElementById('file-input');
         const resetImgBtn = document.getElementById('reset-img-btn');
+        
         const maxIntervalRange = document.getElementById('max-interval-range');
         const maxIntervalVal = document.getElementById('max-interval-val');
+        
         const durationRange = document.getElementById('duration-range');
         const durationVal = document.getElementById('duration-val');
+        const durationRangeSlider = document.getElementById('duration-range-slider');
+        const durationRangeValue = document.getElementById('duration-range-value');
+        
         const sizeRange = document.getElementById('size-range');
         const sizeVal = document.getElementById('size-val');
+        
         const soundToggle = document.getElementById('sound-toggle');
         const volumeRange = document.getElementById('volume-range');
         const volumeVal = document.getElementById('volume-val');
+
+        // ひょっこり具合の揺らぎ表示用
+        const rangeSlider = document.getElementById('rangeSlider');
+        const rangeValue = document.getElementById('rangeValue');
+
+        if (rangeSlider && rangeValue) {
+            rangeValue.textContent = `±${rangeSlider.value}%`;
+            rangeSlider.addEventListener('input', (e) => {
+                rangeValue.textContent = `±${e.target.value}%`;
+            });
+        }
 
         function updateUIValues() {
             previewImg.src = CONFIG.characterImg;
             maxIntervalRange.value = CONFIG.maxInterval;
             maxIntervalVal.textContent = `${CONFIG.maxInterval}秒`;
+            
             durationRange.value = CONFIG.duration;
             durationVal.textContent = `${CONFIG.duration}秒`;
+            
+            durationRangeSlider.value = CONFIG.durationRange;
+            durationRangeValue.textContent = `±${CONFIG.durationRange.toFixed(1)}秒`;
+            
             sizeRange.value = CONFIG.size;
             sizeVal.textContent = `${CONFIG.size}px`;
+            
             soundToggle.checked = CONFIG.soundEnabled;
             volumeRange.value = CONFIG.volume;
             volumeVal.textContent = `${Math.round(CONFIG.volume * 100)}%`;
@@ -508,6 +539,12 @@
         durationRange.addEventListener('input', (e) => {
             CONFIG.duration = parseFloat(e.target.value);
             durationVal.textContent = `${CONFIG.duration}秒`;
+            saveSettingsToStorage();
+        });
+
+        durationRangeSlider.addEventListener('input', (e) => {
+            CONFIG.durationRange = parseFloat(e.target.value);
+            durationRangeValue.textContent = `±${CONFIG.durationRange.toFixed(1)}秒`;
             saveSettingsToStorage();
         });
 
@@ -545,7 +582,7 @@
         resetImgBtn.addEventListener('click', () => {
             CONFIG.characterImg = DEFAULT_CHARACTER;
             previewImg.src = DEFAULT_CHARACTER;
-            fileInput.value = **;
+            fileInput.value = '';
             saveSettingsToStorage();
         });
 
