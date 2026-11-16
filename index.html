@@ -214,7 +214,9 @@
             <!-- 効果音スイッチ & 音量調整 -->
             <div class="space-y-1.5 pt-1 border-t border-gray-800">
                 <div class="flex items-center justify-between text-xs">
-                    <label for="sound-toggle" class="font-semibold text-gray-400 uppercase tracking-wider cursor-pointer">効果音（SE）</label>
+                    <label for="sound-toggle" class="font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center gap-1.5">
+                        <span id="sound-icon" class="text-base">🔊</span> 効果音（SE）
+                    </label>
                     <input type="checkbox" id="sound-toggle" checked class="w-4 h-4 accent-blue-500 cursor-pointer">
                 </div>
                 <div class="flex items-center gap-2 text-xs pt-1">
@@ -482,6 +484,7 @@
         const sizeVal = document.getElementById('size-val');
         
         const soundToggle = document.getElementById('sound-toggle');
+        const soundIcon = document.getElementById('sound-icon');
         const volumeRange = document.getElementById('volume-range');
         const volumeVal = document.getElementById('volume-val');
 
@@ -494,6 +497,16 @@
             rangeSlider.addEventListener('input', (e) => {
                 rangeValue.textContent = `±${e.target.value}%`;
             });
+        }
+
+        function updateSoundIcon() {
+            if (soundToggle.checked) {
+                soundIcon.textContent = '🔊';
+                soundIcon.style.opacity = '1';
+            } else {
+                soundIcon.textContent = '🔇';
+                soundIcon.style.opacity = '0.5';
+            }
         }
 
         function updateUIValues() {
@@ -511,6 +524,8 @@
             sizeVal.textContent = `${CONFIG.size}px`;
             
             soundToggle.checked = CONFIG.soundEnabled;
+            updateSoundIcon();
+
             volumeRange.value = CONFIG.volume;
             volumeVal.textContent = `${Math.round(CONFIG.volume * 100)}%`;
         }
@@ -556,6 +571,7 @@
 
         soundToggle.addEventListener('change', (e) => {
             CONFIG.soundEnabled = e.target.checked;
+            updateSoundIcon();
             saveSettingsToStorage();
         });
 
