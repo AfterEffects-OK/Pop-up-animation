@@ -175,6 +175,13 @@
                 <input type="range" id="size-range" min="80" max="350" step="10" value="180" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
+            <!-- 出てくる分量 -->
+            <div class="control-panel">
+              <label for="depthSlider">ひょっこり具合（深さ）:</label>
+              <input type="range" id="depthSlider" min="20" max="90" value="55" step="1">
+              <span id="depthValue">55%</span>
+            </div>
+
             <!-- 効果音スイッチ & 音量調整 -->
             <div class="space-y-2 pt-1 border-t border-gray-800">
                 <div class="flex items-center justify-between text-xs">
@@ -316,6 +323,18 @@
 
         const SE = new SoundEffects();
         const stage = document.getElementById('stage');
+        const slider = document.getElementById('depthSlider');
+        const depthValue = document.getElementById('depthValue');
+        
+        if (slider && depthValue) {
+          // 初期値の反映
+          depthValue.textContent = `${slider.value}%`;
+          
+          // スライダーを動かしたときの処理
+          slider.addEventListener('input', (e) => {
+            depthValue.textContent = `${e.target.value}%`;
+          });
+        }
 
         // ひょっこりアニメーション生成関数
         function createPeek() {
@@ -353,8 +372,9 @@
 
             el.style.setProperty('--peek-rotate', `${rotateDeg}deg`);
             
-            // 顔を出す深さ (45% ~ 65%)
-            const depth = Math.floor(Math.random() * 20) + 45;
+            // スライダーから現在の値を取得して設定（スライダーがない場合はデフォルト55%）
+            const slider = document.getElementById('depthSlider');
+            const depth = slider ? slider.value : 55;
             el.style.setProperty('--peek-depth', `${depth}%`);
 
             if (dir === 'bottom' || dir === 'top') {
