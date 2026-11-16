@@ -471,12 +471,14 @@
             const vh = window.innerHeight;
             const size = config.size;
 
-            // 揺らぎ計算
+            // 揺らぎ計算（深さ）
             const varianceOffset = (Math.random() * 2 - 1) * config.variance;
             const currentDepthPercent = Math.min(Math.max(config.depth + varianceOffset, 10), 95);
             const depthPx = (size * currentDepthPercent) / 100;
-            // 揺り戻し用のさらに深く突き出るオフセット（約18px多め）
             const overshootPx = depthPx + 18;
+
+            // ★回転のランダムさを追加（方向に応じた基本角度に ±8° のランダムな揺らぎを付与）
+            const randomTilt = (Math.random() * 2 - 1) * 8; // -8度 〜 +8度のブレ
 
             let hideTransform = '';
             let overshootTransform = '';
@@ -486,36 +488,40 @@
                 const x = Math.random() * (vw - size);
                 el.style.left = x + 'px';
                 el.style.top = -size + 'px';
-                hideTransform = `translateY(0px) rotate(180deg)`;
-                overshootTransform = `translateY(${overshootPx}px) rotate(180deg)`;
-                showTransform = `translateY(${depthPx}px) rotate(180deg)`;
+                const baseRot = 180;
+                hideTransform = `translateY(0px) rotate(${baseRot}deg)`;
+                overshootTransform = `translateY(${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
+                showTransform = `translateY(${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
             } else if (side === 'bottom') {
                 const x = Math.random() * (vw - size);
                 el.style.left = x + 'px';
                 el.style.bottom = -size + 'px';
-                hideTransform = `translateY(0px)`;
-                overshootTransform = `translateY(-${overshootPx}px)`;
-                showTransform = `translateY(-${depthPx}px)`;
+                const baseRot = 0;
+                hideTransform = `translateY(0px) rotate(${baseRot}deg)`;
+                overshootTransform = `translateY(-${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
+                showTransform = `translateY(-${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
             } else if (side === 'left') {
                 const y = Math.random() * (vh - size);
                 el.style.top = y + 'px';
                 el.style.left = -size + 'px';
+                const baseRot = 15;
                 hideTransform = `translateX(0px) rotate(45deg)`;
-                overshootTransform = `translateX(${overshootPx}px) rotate(10deg)`;
-                showTransform = `translateX(${depthPx}px) rotate(15deg)`;
+                overshootTransform = `translateX(${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
+                showTransform = `translateX(${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
             } else if (side === 'right') {
                 const y = Math.random() * (vh - size);
                 el.style.top = y + 'px';
                 el.style.right = -size + 'px';
+                const baseRot = -15;
                 hideTransform = `translateX(0px) rotate(-45deg)`;
-                overshootTransform = `translateX(-${overshootPx}px) rotate(-10deg)`;
-                showTransform = `translateX(-${depthPx}px) rotate(-15deg)`;
+                overshootTransform = `translateX(-${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
+                showTransform = `translateX(-${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
             }
 
-            // 1. まず完全に隠れた状態からスタート
+            // 1. 完全非表示状態からスタート
             el.style.transform = hideTransform;
 
-            // 2. 登場（一瞬で飛び出してピタッと止まる）
+            // 2. 登場（ランダムな角度を伴って行き過ぎる）
             requestAnimationFrame(() => {
                 playPopSound('pop');
                 el.style.transform = overshootTransform;
@@ -530,7 +536,7 @@
                 isDismissed = true;
                 if (!fast) playPopSound('surprise');
 
-                // ★退場時の動き始め：隠れる前に「一度グッと画面内（さらに深く突き出る方向）へ押し込まれてから」引っ込む
+                // 退場前の揺り戻し（同じランダム角度を維持したまま深く押し込まれる）
                 el.style.transform = overshootTransform;
 
                 setTimeout(() => {
