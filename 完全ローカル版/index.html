@@ -34,12 +34,12 @@
             position: absolute;
             pointer-events: auto;
             cursor: pointer;
-            /* 弾力のあるバネのようなイージングに変更 */
-            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
             will-change: transform;
             display: flex;
             align-items: center;
             justify-content: center;
+            /* GPUアクセラレーションの強制とスムーズ化 */
+            transform: translateZ(0);
         }
 
         .peek-character img,
@@ -141,17 +141,6 @@
             font-size: 0.875rem;
             margin-bottom: 6px;
             color: #ccc;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 8px 12px;
-            background: #2a2a3d;
-            border: 1px solid #444;
-            color: #fff;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 0.95rem;
         }
 
         .form-range {
@@ -295,7 +284,6 @@
         const settingsModal = document.getElementById('settings-modal');
         const closeModal = document.getElementById('close-modal');
 
-        // 入力要素のバインド
         const inputSize = document.getElementById('input-size');
         const inputInterval = document.getElementById('input-interval');
         const inputDuration = document.getElementById('input-duration');
@@ -305,7 +293,6 @@
         const mediaInput = document.getElementById('media-input');
         const previewBox = document.getElementById('preview-box');
 
-        // UI初期値反映
         inputSize.value = config.size;
         inputInterval.value = config.interval;
         inputDuration.value = config.duration;
@@ -321,14 +308,12 @@
 
         updatePreview();
 
-        // モーダル開閉
         settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
         closeModal.addEventListener('click', () => settingsModal.classList.remove('active'));
         settingsModal.addEventListener('click', (e) => {
             if (e.target === settingsModal) settingsModal.classList.remove('active');
         });
 
-        // パラメータ変更イベント
         inputSize.addEventListener('input', (e) => {
             config.size = parseInt(e.target.value);
             document.getElementById('val-size').textContent = config.size + 'px';
@@ -365,7 +350,6 @@
             localStorage.setItem('peek_sound', config.soundEnabled);
         });
 
-        // ファイルアップロード処理
         mediaInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -397,7 +381,6 @@
             }
         }
 
-        // Web Audio APIによる効果音合成
         let audioCtx = null;
         function playPopSound(type = 'pop') {
             if (!config.soundEnabled) return;
@@ -436,7 +419,6 @@
             }
         }
 
-        // ひょっこりアニメーション本体
         let timer = null;
 
         function triggerPeek() {
@@ -471,94 +453,76 @@
             const vh = window.innerHeight;
             const size = config.size;
 
-            // 揺らぎ計算（深さ）
+            // 揺らぎ計算（深さ・角度）
             const varianceOffset = (Math.random() * 2 - 1) * config.variance;
             const currentDepthPercent = Math.min(Math.max(config.depth + varianceOffset, 10), 95);
             const depthPx = (size * currentDepthPercent) / 100;
-            const overshootPx = depthPx + 18;
+            const randomTilt = (Math.random() * 2 - 1) * 8; // -8度 〜 +8度
 
-            // ★回転のランダムさを追加（方向に応じた基本角度に ±8° のランダムな揺らぎを付与）
-            const randomTilt = (Math.random() * 2 - 1) * 8; // -8度 〜 +8度のブレ
-
-            let hideTransform = '';
-            let overshootTransform = '';
-            let showTransform = '';
+            let hideAxisVal = -size + 'px';
+            let showAxisVal = depthPx + 'px';
+            let baseRot = 0;
 
             if (side === 'top') {
-                const x = Math.random() * (vw - size);
-                el.style.left = x + 'px';
-                el.style.top = -size + 'px';
-                const baseRot = 180;
-                hideTransform = `translateY(0px) rotate(${baseRot}deg)`;
-                overshootTransform = `translateY(${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
-                showTransform = `translateY(${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
+                el.style.left = (Math.random() * (vw - size)) + 'px';
+                el.style.top = hideAxisVal;
+                baseRot = 180;
             } else if (side === 'bottom') {
-                const x = Math.random() * (vw - size);
-                el.style.left = x + 'px';
-                el.style.bottom = -size + 'px';
-                const baseRot = 0;
-                hideTransform = `translateY(0px) rotate(${baseRot}deg)`;
-                overshootTransform = `translateY(-${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
-                showTransform = `translateY(-${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
+                el.style.left = (Math.random() * (vw - size)) + 'px';
+                el.style.bottom = hideAxisVal;
+                baseRot = 0;
             } else if (side === 'left') {
-                const y = Math.random() * (vh - size);
-                el.style.top = y + 'px';
-                el.style.left = -size + 'px';
-                const baseRot = 15;
-                hideTransform = `translateX(0px) rotate(45deg)`;
-                overshootTransform = `translateX(${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
-                showTransform = `translateX(${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
+                el.style.top = (Math.random() * (vh - size)) + 'px';
+                el.style.left = hideAxisVal;
+                baseRot = 15;
             } else if (side === 'right') {
-                const y = Math.random() * (vh - size);
-                el.style.top = y + 'px';
-                el.style.right = -size + 'px';
-                const baseRot = -15;
-                hideTransform = `translateX(0px) rotate(-45deg)`;
-                overshootTransform = `translateX(-${overshootPx}px) rotate(${baseRot + randomTilt}deg)`;
-                showTransform = `translateX(-${depthPx}px) rotate(${baseRot + randomTilt}deg)`;
+                el.style.top = (Math.random() * (vh - size)) + 'px';
+                el.style.right = hideAxisVal;
+                baseRot = -15;
             }
 
-            // 1. 完全非表示状態からスタート
-            el.style.transform = hideTransform;
+            const finalRot = baseRot + randomTilt;
+            const targetTranslate = side === 'top' || side === 'bottom' ? `translateY(${showAxisVal})` : `translateX(${side === 'left' ? showAxisVal : '-' + showAxisVal})` ;
+            const hideTranslate = side === 'top' || side === 'bottom' ? `translateY(0px)` : `translateX(0px)`;
 
-            // 2. 登場（ランダムな角度を伴って行き過ぎる）
-            requestAnimationFrame(() => {
-                playPopSound('pop');
-                el.style.transform = overshootTransform;
-                setTimeout(() => {
-                    el.style.transform = showTransform;
-                }, 180);
-            });
+            // 一意の動的アニメーション名を作成して適用（CSSアニメーション化による最高峰の滑らかさ）
+            const animName = 'peekAnim_' + Math.random().toString(36.substring(2, 9));
+            const stayMs = Math.max(800, (config.duration + (Math.random() * 1 - 0.5)) * 1000);
+            const totalDurationSec = (stayMs / 1000) + 0.6; // 登場・退場各0.3秒
 
-            let isDismissed = false;
-            const dismiss = (fast = false) => {
-                if (isDismissed) return;
-                isDismissed = true;
-                if (!fast) playPopSound('surprise');
+            const styleTag = document.createElement('style');
+            styleTag.innerHTML = `
+                @keyframes ${animName} {
+                    0% { transform: ${hideTranslate} rotate(${baseRot + (side === 'left' ? 30 : side === 'right' ? -30 : 0)}deg); }
+                    12% { transform: ${targetTranslate} rotate(${finalRot}deg); }
+                    22% { transform: ${targetTranslate} rotate(${finalRot}deg); }
+                    80% { transform: ${targetTranslate} rotate(${finalRot}deg); }
+                    100% { transform: ${hideTranslate} rotate(${baseRot}deg); }
+                }
+                #${animName} {
+                    animation: ${animName} ${totalDurationSec}s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                }
+            `;
+            document.head.appendChild(styleTag);
+            el.id = animName;
 
-                // 退場前の揺り戻し（同じランダム角度を維持したまま深く押し込まれる）
-                el.style.transform = overshootTransform;
+            playPopSound('pop');
 
-                setTimeout(() => {
-                    el.style.transform = hideTransform;
-                }, 180);
-
-                setTimeout(() => {
-                    if (el.parentNode) el.parentNode.removeChild(el);
-                }, fast ? 200 : 500);
+            let isRemoved = false;
+            const removeEl = () => {
+                if (isRemoved) return;
+                isRemoved = true;
+                if (el.parentNode) el.parentNode.removeChild(el);
+                if (styleTag.parentNode) styleTag.parentNode.removeChild(styleTag);
             };
 
             el.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
-                dismiss(true);
+                playPopSound('surprise');
+                removeEl();
             });
 
-            // 滞在タイマー
-            const stayTime = (config.duration + (Math.random() * 1 - 0.5)) * 1000;
-            setTimeout(() => {
-                dismiss(false);
-            }, Math.max(800, stayTime));
-
+            setTimeout(removeEl, totalDurationSec * 1000);
             scheduleNext();
         }
 
@@ -573,7 +537,6 @@
             scheduleNext();
         }
 
-        // 初回起動
         scheduleNext();
     </script>
 </body>
