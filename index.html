@@ -138,7 +138,7 @@
 
     <!-- 設定モーダル -->
     <div id="settings-modal" class="flex">
-        <div class="bg-gray-900/90 text-white rounded-2xl p-6 max-w-sm w-full border border-gray-700/60 shadow-2xl space-y-5">
+        <div class="bg-gray-900/90 text-white rounded-2xl p-6 max-w-sm w-full border border-gray-700/60 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-gray-800 pb-3">
                 <h2 class="text-lg font-bold flex items-center gap-2">⚙️ アニメーション設定</h2>
                 <button id="close-modal-btn" class="text-gray-400 hover:text-white text-xl p-1">&times;</button>
@@ -164,6 +164,15 @@
                     <span id="max-interval-val" class="font-mono text-blue-400 font-bold">30秒</span>
                 </div>
                 <input type="range" id="max-interval-range" min="3" max="30" step="1" value="30" class="w-full accent-blue-500 cursor-pointer">
+            </div>
+
+            <!-- 滞在時間（秒） -->
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                    <label for="duration-range" class="font-semibold text-gray-400 uppercase tracking-wider">滞在時間（じっとする時間）</label>
+                    <span id="duration-val" class="font-mono text-blue-400 font-bold">1.8秒</span>
+                </div>
+                <input type="range" id="duration-range" min="0.5" max="5.0" step="0.1" value="1.8" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <!-- キャラクタースケール -->
@@ -267,7 +276,6 @@
                 }
             }
 
-            // ひょっこり現れる時のポイン音
             playPop() {
                 if (!CONFIG.soundEnabled) return;
                 try {
@@ -288,7 +296,6 @@
                 } catch(e) {}
             }
 
-            // 引っ込む音
             playHide() {
                 if (!CONFIG.soundEnabled) return;
                 try {
@@ -309,7 +316,6 @@
                 } catch(e) {}
             }
 
-            // クリックして驚いた音
             playSurprise() {
                 if (!CONFIG.soundEnabled) return;
                 try {
@@ -334,6 +340,7 @@
 
         const SE = new SoundEffects();
         const stage = document.getElementById('stage');
+
         // ランダム揺らぎ幅スライダーの連動
         const rangeSlider = document.getElementById('rangeSlider');
         const rangeValue = document.getElementById('rangeValue');
@@ -367,9 +374,6 @@
             const posPercent = Math.floor(Math.random() * 70) + 10;
             
             // 方向に応じた回転角度の計算
-            // 左から: プラス方向 (+5 ~ +25度)
-            // 右から: マイナス方向 (-25 ~ -5度)
-            // 上下: 従来どおりランダムな微傾き (-15 ~ +15度)
             let rotateDeg;
             if (dir === 'left') {
                 rotateDeg = Math.random() * 20 + 5;
@@ -383,15 +387,14 @@
             
             // スライダーから基準値と揺らぎ幅を取得する
             const slider = document.getElementById('depthSlider');
-            const rangeSlider = document.getElementById('rangeSlider');
+            const rangeSliderElem = document.getElementById('rangeSlider');
             
             const baseDepth = slider ? parseInt(slider.value, 10) : 55;
-            const range = rangeSlider ? parseInt(rangeSlider.value, 10) : 10; // デフォルト±10%
+            const range = rangeSliderElem ? parseInt(rangeSliderElem.value, 10) : 10;
             
-            // 基準値から ±(range) の範囲でランダムに変化させる
             const randomOffset = (Math.random() * (range * 2)) - range; 
             let depth = Math.round(baseDepth + randomOffset);
-            depth = Math.max(20, Math.min(90, depth)); // 20%〜90%の範囲に収める
+            depth = Math.max(20, Math.min(90, depth));
             el.style.setProperty('--peek-depth', `${depth}%`);
 
             if (dir === 'bottom' || dir === 'top') {
@@ -425,7 +428,7 @@
                 });
             });
 
-            // 指定時間後に自動で引っ込む
+            // 指定時間後に自動で引っ込む（設定された滞在時間を反映）
             setTimeout(() => {
                 if (!isClicked && el.parentNode) {
                     el.classList.remove('peeking');
@@ -438,7 +441,7 @@
             }, CONFIG.duration * 1000);
         }
 
-        // 次のひょっこりをスケジューリング (1〜maxInterval秒のランダム間隔)
+        // 次のひょっこりをスケジューリング
         let timerId = null;
         function scheduleNextPeek() {
             if (timerId) clearTimeout(timerId);
@@ -460,6 +463,8 @@
         const resetImgBtn = document.getElementById('reset-img-btn');
         const maxIntervalRange = document.getElementById('max-interval-range');
         const maxIntervalVal = document.getElementById('max-interval-val');
+        const durationRange = document.getElementById('duration-range');
+        const durationVal = document.getElementById('duration-val');
         const sizeRange = document.getElementById('size-range');
         const sizeVal = document.getElementById('size-val');
         const soundToggle = document.getElementById('sound-toggle');
@@ -470,6 +475,8 @@
             previewImg.src = CONFIG.characterImg;
             maxIntervalRange.value = CONFIG.maxInterval;
             maxIntervalVal.textContent = `${CONFIG.maxInterval}秒`;
+            durationRange.value = CONFIG.duration;
+            durationVal.textContent = `${CONFIG.duration}秒`;
             sizeRange.value = CONFIG.size;
             sizeVal.textContent = `${CONFIG.size}px`;
             soundToggle.checked = CONFIG.soundEnabled;
@@ -496,6 +503,12 @@
             maxIntervalVal.textContent = `${CONFIG.maxInterval}秒`;
             saveSettingsToStorage();
             scheduleNextPeek();
+        });
+
+        durationRange.addEventListener('input', (e) => {
+            CONFIG.duration = parseFloat(e.target.value);
+            durationVal.textContent = `${CONFIG.duration}秒`;
+            saveSettingsToStorage();
         });
 
         sizeRange.addEventListener('input', (e) => {
@@ -532,7 +545,7 @@
         resetImgBtn.addEventListener('click', () => {
             CONFIG.characterImg = DEFAULT_CHARACTER;
             previewImg.src = DEFAULT_CHARACTER;
-            fileInput.value = '';
+            fileInput.value = **;
             saveSettingsToStorage();
         });
 
