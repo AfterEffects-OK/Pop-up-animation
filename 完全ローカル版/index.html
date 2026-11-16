@@ -34,7 +34,8 @@
             position: absolute;
             pointer-events: auto;
             cursor: pointer;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* 弾力のあるバネのようなイージングに変更 */
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
             will-change: transform;
             display: flex;
             align-items: center;
@@ -474,9 +475,11 @@
             const varianceOffset = (Math.random() * 2 - 1) * config.variance;
             const currentDepthPercent = Math.min(Math.max(config.depth + varianceOffset, 10), 95);
             const depthPx = (size * currentDepthPercent) / 100;
+            // 揺り戻し用のちょっと行き過ぎるオフセット（約15px〜20px多めに出る）
+            const overshootPx = depthPx + 18;
 
-            let startTransform = '';
             let hideTransform = '';
+            let overshootTransform = '';
             let showTransform = '';
 
             if (side === 'top') {
@@ -484,33 +487,43 @@
                 el.style.left = x + 'px';
                 el.style.top = -size + 'px';
                 hideTransform = `translateY(0px) rotate(180deg)`;
+                overshootTransform = `translateY(${overshootPx}px) rotate(180deg)`;
                 showTransform = `translateY(${depthPx}px) rotate(180deg)`;
             } else if (side === 'bottom') {
                 const x = Math.random() * (vw - size);
                 el.style.left = x + 'px';
                 el.style.bottom = -size + 'px';
                 hideTransform = `translateY(0px)`;
+                overshootTransform = `translateY(-${overshootPx}px)`;
                 showTransform = `translateY(-${depthPx}px)`;
             } else if (side === 'left') {
                 const y = Math.random() * (vh - size);
                 el.style.top = y + 'px';
                 el.style.left = -size + 'px';
                 hideTransform = `translateX(0px) rotate(45deg)`;
+                overshootTransform = `translateX(${overshootPx}px) rotate(10deg)`;
                 showTransform = `translateX(${depthPx}px) rotate(15deg)`;
             } else if (side === 'right') {
                 const y = Math.random() * (vh - size);
                 el.style.top = y + 'px';
                 el.style.right = -size + 'px';
                 hideTransform = `translateX(0px) rotate(-45deg)`;
+                overshootTransform = `translateX(-${overshootPx}px) rotate(-10deg)`;
                 showTransform = `translateX(-${depthPx}px) rotate(-15deg)`;
             }
 
             el.style.transform = hideTransform;
 
-            // 登場
+            // 登場（一度行き過ぎてから定位置に戻るオーバシュート演出）
             requestAnimationFrame(() => {
                 playPopSound('pop');
-                el.style.transform = showTransform;
+                // 1. まず勢いよく行き過ぎる位置へ
+                el.style.transform = overshootTransform;
+
+                // 2. わずかに遅れてピタッと収まる定位置へ戻す
+                setTimeout(() => {
+                    el.style.transform = showTransform;
+                }, 180);
             });
 
             let isDismissed = false;
@@ -521,7 +534,7 @@
                 el.style.transform = hideTransform;
                 setTimeout(() => {
                     if (el.parentNode) el.parentNode.removeChild(el);
-                }, fast ? 200 : 400);
+                }, fast ? 200 : 500);
             };
 
             el.addEventListener('pointerdown', (e) => {
