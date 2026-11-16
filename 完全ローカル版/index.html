@@ -475,7 +475,7 @@
             const varianceOffset = (Math.random() * 2 - 1) * config.variance;
             const currentDepthPercent = Math.min(Math.max(config.depth + varianceOffset, 10), 95);
             const depthPx = (size * currentDepthPercent) / 100;
-            // 揺り戻し用のちょっと行き過ぎるオフセット（約15px〜20px多めに出る）
+            // 揺り戻し用のさらに深く突き出るオフセット（約18px多め）
             const overshootPx = depthPx + 18;
 
             let hideTransform = '';
@@ -512,15 +512,13 @@
                 showTransform = `translateX(-${depthPx}px) rotate(-15deg)`;
             }
 
+            // 1. まず完全に隠れた状態からスタート
             el.style.transform = hideTransform;
 
-            // 登場（一度行き過ぎてから定位置に戻るオーバシュート演出）
+            // 2. 登場（一瞬で飛び出してピタッと止まる）
             requestAnimationFrame(() => {
                 playPopSound('pop');
-                // 1. まず勢いよく行き過ぎる位置へ
                 el.style.transform = overshootTransform;
-
-                // 2. わずかに遅れてピタッと収まる定位置へ戻す
                 setTimeout(() => {
                     el.style.transform = showTransform;
                 }, 180);
@@ -531,7 +529,14 @@
                 if (isDismissed) return;
                 isDismissed = true;
                 if (!fast) playPopSound('surprise');
-                el.style.transform = hideTransform;
+
+                // ★退場時の動き始め：隠れる前に「一度グッと画面内（さらに深く突き出る方向）へ押し込まれてから」引っ込む
+                el.style.transform = overshootTransform;
+
+                setTimeout(() => {
+                    el.style.transform = hideTransform;
+                }, 180);
+
                 setTimeout(() => {
                     if (el.parentNode) el.parentNode.removeChild(el);
                 }, fast ? 200 : 500);
