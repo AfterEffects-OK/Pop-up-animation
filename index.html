@@ -251,6 +251,8 @@
             duration: 1.8,              // 滞在表示時間 基準 (秒)
             durationRange: 0.6,         // 滞在時間の揺らぎ幅 (±秒)
             size: 180,                  // キャラクタースケール (px)
+            depth: 55,                  // ひょっこり具合（基準） (%)
+            depthRange: 10,             // ひょっこり具合の揺らぎ幅 (%)
             characterSrc: DEFAULT_CHARACTER,
             isVideo: false,
             soundEnabled: true,
@@ -402,14 +404,8 @@
             el.style.setProperty('--peek-rotate', `${rotateDeg}deg`);
             
             // ひょっこり具合の計算 (基準 + 揺らぎ)
-            const depthSlider = document.getElementById('depthSlider');
-            const rangeSliderElem = document.getElementById('rangeSlider');
-            
-            const baseDepth = depthSlider ? parseInt(depthSlider.value, 10) : 55;
-            const depthRange = rangeSliderElem ? parseInt(rangeSliderElem.value, 10) : 10;
-            
-            const randomDepthOffset = (Math.random() * (depthRange * 2)) - depthRange; 
-            let depth = Math.round(baseDepth + randomDepthOffset);
+            const randomDepthOffset = (Math.random() * (CONFIG.depthRange * 2)) - CONFIG.depthRange; 
+            let depth = Math.round(CONFIG.depth + randomDepthOffset);
             depth = Math.max(20, Math.min(90, depth));
             el.style.setProperty('--peek-depth', `${depth}%`);
 
@@ -445,12 +441,7 @@
             });
 
             // 今回の個別滞在時間（基準 + 揺らぎ）の計算
-            const durSlider = document.getElementById('duration-range');
-            const durRangeSlider = document.getElementById('duration-range-slider');
-            const baseDur = durSlider ? parseFloat(durSlider.value) : 1.8;
-            const durRng = durRangeSlider ? parseFloat(durRangeSlider.value) : 0.6;
-            
-            let currentDuration = baseDur + ((Math.random() * (durRng * 2)) - durRng);
+            let currentDuration = CONFIG.duration + ((Math.random() * (CONFIG.durationRange * 2)) - CONFIG.durationRange);
             currentDuration = Math.max(0.3, currentDuration); // 最低0.3秒は確保
 
             // 指定時間後に自動で引っ込む
@@ -498,22 +489,16 @@
         
         const sizeRange = document.getElementById('size-range');
         const sizeVal = document.getElementById('size-val');
+
+        const depthSlider = document.getElementById('depthSlider');
+        const depthValue = document.getElementById('depthValue');
+        const rangeSlider = document.getElementById('rangeSlider');
+        const rangeValue = document.getElementById('rangeValue');
         
         const soundToggle = document.getElementById('sound-toggle');
         const soundIcon = document.getElementById('sound-icon');
         const volumeRange = document.getElementById('volume-range');
         const volumeVal = document.getElementById('volume-val');
-
-        // ひょっこり具合の揺らぎ表示用
-        const rangeSlider = document.getElementById('rangeSlider');
-        const rangeValue = document.getElementById('rangeValue');
-
-        if (rangeSlider && rangeValue) {
-            rangeValue.textContent = `±${rangeSlider.value}%`;
-            rangeSlider.addEventListener('input', (e) => {
-                rangeValue.textContent = `±${e.target.value}%`;
-            });
-        }
 
         function updateSoundIcon() {
             if (soundToggle.checked) {
@@ -552,6 +537,12 @@
             
             sizeRange.value = CONFIG.size;
             sizeVal.textContent = `${CONFIG.size}px`;
+
+            depthSlider.value = CONFIG.depth;
+            depthValue.textContent = `${CONFIG.depth}%`;
+
+            rangeSlider.value = CONFIG.depthRange;
+            rangeValue.textContent = `±${CONFIG.depthRange}%`;
             
             soundToggle.checked = CONFIG.soundEnabled;
             updateSoundIcon();
@@ -596,6 +587,18 @@
         sizeRange.addEventListener('input', (e) => {
             CONFIG.size = parseInt(e.target.value, 10);
             sizeVal.textContent = `${CONFIG.size}px`;
+            saveSettingsToStorage();
+        });
+
+        depthSlider.addEventListener('input', (e) => {
+            CONFIG.depth = parseInt(e.target.value, 10);
+            depthValue.textContent = `${CONFIG.depth}%`;
+            saveSettingsToStorage();
+        });
+
+        rangeSlider.addEventListener('input', (e) => {
+            CONFIG.depthRange = parseInt(e.target.value, 10);
+            rangeValue.textContent = `±${CONFIG.depthRange}%`;
             saveSettingsToStorage();
         });
 
