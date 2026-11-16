@@ -175,13 +175,22 @@
                 <input type="range" id="size-range" min="80" max="350" step="10" value="180" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
-            <!-- 出てくる分量 -->
-            <div class="control-panel">
+            <!-- ひょっこり具合（基準） -->
+            <div class="space-y-2">
                 <div class="flex justify-between text-xs">
-                  <label for="depthSlider">ひょっこり具合（深さ）:</label>
-                  <input type="range" id="depthSlider" min="20" max="90" value="55" step="1">
-                      <span id="depthValue">55%</span>
+                    <label for="depthSlider" class="font-semibold text-gray-400 uppercase tracking-wider">ひょっこり具合（基準）</label>
+                    <span id="depthValue" class="font-mono text-blue-400 font-bold">55%</span>
                 </div>
+                <input type="range" id="depthSlider" min="20" max="90" value="55" step="1" class="w-full accent-blue-500 cursor-pointer">
+            </div>
+            
+            <!-- ランダムの揺らぎ幅 -->
+            <div class="space-y-2 mt-3">
+                <div class="flex justify-between text-xs">
+                    <label for="rangeSlider" class="font-semibold text-gray-400 uppercase tracking-wider">ランダムの揺らぎ幅</label>
+                    <span id="rangeValue" class="font-mono text-blue-400 font-bold">±10%</span>
+                </div>
+                <input type="range" id="rangeSlider" min="0" max="30" value="10" step="1" class="w-full accent-blue-500 cursor-pointer">
             </div>
 
             <!-- 効果音スイッチ & 音量調整 -->
@@ -325,16 +334,14 @@
 
         const SE = new SoundEffects();
         const stage = document.getElementById('stage');
-        const slider = document.getElementById('depthSlider');
-        const depthValue = document.getElementById('depthValue');
+        // ランダム揺らぎ幅スライダーの連動
+        const rangeSlider = document.getElementById('rangeSlider');
+        const rangeValue = document.getElementById('rangeValue');
         
-        if (slider && depthValue) {
-          // 初期値の反映
-          depthValue.textContent = `${slider.value}%`;
-          
-          // スライダーを動かしたときの処理
-          slider.addEventListener('input', (e) => {
-            depthValue.textContent = `${e.target.value}%`;
+        if (rangeSlider && rangeValue) {
+          rangeValue.textContent = `±${rangeSlider.value}%`;
+          rangeSlider.addEventListener('input', (e) => {
+            rangeValue.textContent = `±${e.target.value}%`;
           });
         }
 
@@ -374,9 +381,17 @@
 
             el.style.setProperty('--peek-rotate', `${rotateDeg}deg`);
             
-            // スライダーから現在の値を取得して設定（スライダーがない場合はデフォルト55%）
+            // スライダーから基準値と揺らぎ幅を取得する
             const slider = document.getElementById('depthSlider');
-            const depth = slider ? slider.value : 55;
+            const rangeSlider = document.getElementById('rangeSlider');
+            
+            const baseDepth = slider ? parseInt(slider.value, 10) : 55;
+            const range = rangeSlider ? parseInt(rangeSlider.value, 10) : 10; // デフォルト±10%
+            
+            // 基準値から ±(range) の範囲でランダムに変化させる
+            const randomOffset = (Math.random() * (range * 2)) - range; 
+            let depth = Math.round(baseDepth + randomOffset);
+            depth = Math.max(20, Math.min(90, depth)); // 20%〜90%の範囲に収める
             el.style.setProperty('--peek-depth', `${depth}%`);
 
             if (dir === 'bottom' || dir === 'top') {
