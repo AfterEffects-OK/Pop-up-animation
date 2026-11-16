@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ひょっこりアニメーション</title>
+    <style>
+        /* 背景とスクロールを透明化・無効化 */
+        html, body {
+            background-color: transparent !important;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* アニメーション用ステージ */
+        #stage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            overflow: hidden;
+        }
+
+        /* 出現キャラクター */
+        .peek-character {
+            position: absolute;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            will-change: transform;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .peek-character img,
+        .peek-character video {
+            display: block;
+            max-width: none;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* 設定ボタン（右上の歯車） */
+        #settings-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10000;
+            transition: background 0.2s, transform 0.2s;
+            opacity: 0.3;
+        }
+
+        #settings-btn:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(1.05);
+        }
+
+        /* 設定モーダル */
+        #settings-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #settings-modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e1e2f;
+            color: #ffffff;
+            width: 90%;
+            max-width: 480px;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 12px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            margin-bottom: 6px;
+            color: #ccc;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            background: #2a2a3d;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+
+        .form-range {
+            width: 100%;
+            accent-color: #6366f1;
+        }
+
+        .flex-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            background: #6366f1;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-align: center;
+            transition: background 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .file-upload-label:hover {
+            background: #4f46e5;
+        }
+
+        #media-input {
+            display: none;
+        }
+
+        .preview-box {
+            margin-top: 8px;
+            text-align: center;
+            max-height: 100px;
+            overflow: hidden;
+        }
+
+        .preview-box img, .preview-box video {
+            max-height: 80px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- アニメーションステージ -->
+    <div id="stage"></div>
+
+    <!-- 設定ボタン -->
+    <button id="settings-btn" title="設定">⚙️</button>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ひょっこりアニメーション設定</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+
+            <!-- キャラクター / 動画選択 -->
+            <div class="form-group">
+                <label>キャラを選択（画像 または 透過WebM動画）</label>
+                <label for="media-input" class="file-upload-label">ファイルを選択</label>
+                <input type="file" id="media-input" accept="image/*,video/webm,video/mp4">
+                <div class="preview-box" id="preview-box"></div>
+            </div>
+
+            <!-- キャラサイズ -->
+            <div class="form-group">
+                <div class="flex-row">
+                    <label>キャラクターサイズ</label>
+                    <span id="val-size">150px</span>
+                </div>
+                <input type="range" id="input-size" class="form-range" min="80" max="350" value="150">
+            </div>
+
+            <!-- 出現頻度 -->
+            <div class="form-group">
+                <div class="flex-row">
+                    <label>最大出現間隔</label>
+                    <span id="val-interval">10秒</span>
+                </div>
+                <input type="range" id="input-interval" class="form-range" min="2" max="30" value="10">
+            </div>
+
+            <!-- 滞在時間 -->
+            <div class="form-group">
+                <div class="flex-row">
+                    <label>滞在時間（基準）</label>
+                    <span id="val-duration">3.0秒</span>
+                </div>
+                <input type="range" id="input-duration" class="form-range" min="1" max="10" step="0.5" value="3">
+            </div>
+
+            <!-- ひょっこり具合（深さ） -->
+            <div class="form-group">
+                <div class="flex-row">
+                    <label>ひょっこり具合（深さ）</label>
+                    <span id="val-depth">40%</span>
+                </div>
+                <input type="range" id="input-depth" class="form-range" min="20" max="90" value="40">
+            </div>
+
+            <!-- 揺らぎ幅 -->
+            <div class="form-group">
+                <div class="flex-row">
+                    <label>揺らぎ幅（±%）</label>
+                    <span id="val-variance">15%</span>
+                </div>
+                <input type="range" id="input-variance" class="form-range" min="0" max="40" value="15">
+            </div>
+
+            <!-- 効果音設定 -->
+            <div class="form-group flex-row">
+                <label for="input-sound" style="margin:0;">効果音 (SE) を有効にする</label>
+                <input type="checkbox" id="input-sound" checked style="width: 20px; height: 20px; cursor: pointer;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 設定オブジェクト＆デフォルト値
+        const config = {
+            mediaUrl: localStorage.getItem('peek_media') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+            mediaType: localStorage.getItem('peek_type') || 'image',
+            size: parseInt(localStorage.getItem('peek_size')) || 150,
+            interval: parseInt(localStorage.getItem('peek_interval')) || 10,
+            duration: parseFloat(localStorage.getItem('peek_duration')) || 3.0,
+            depth: parseInt(localStorage.getItem('peek_depth')) || 40,
+            variance: parseInt(localStorage.getItem('peek_variance')) || 15,
+            soundEnabled: localStorage.getItem('peek_sound') !== 'false'
+        };
+
+        const stage = document.getElementById('stage');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeModal = document.getElementById('close-modal');
+
+        // 入力要素のバインド
+        const inputSize = document.getElementById('input-size');
+        const inputInterval = document.getElementById('input-interval');
+        const inputDuration = document.getElementById('input-duration');
+        const inputDepth = document.getElementById('input-depth');
+        const inputVariance = document.getElementById('input-variance');
+        const inputSound = document.getElementById('input-sound');
+        const mediaInput = document.getElementById('media-input');
+        const previewBox = document.getElementById('preview-box');
+
+        // UI初期値反映
+        inputSize.value = config.size;
+        inputInterval.value = config.interval;
+        inputDuration.value = config.duration;
+        inputDepth.value = config.depth;
+        inputVariance.value = config.variance;
+        inputSound.checked = config.soundEnabled;
+
+        document.getElementById('val-size').textContent = config.size + 'px';
+        document.getElementById('val-interval').textContent = config.interval + '秒';
+        document.getElementById('val-duration').textContent = config.duration.toFixed(1) + '秒';
+        document.getElementById('val-depth').textContent = config.depth + '%';
+        document.getElementById('val-variance').textContent = config.variance + '%';
+
+        updatePreview();
+
+        // モーダル開閉
+        settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+        closeModal.addEventListener('click', () => settingsModal.classList.remove('active'));
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) settingsModal.classList.remove('active');
+        });
+
+        // パラメータ変更イベント
+        inputSize.addEventListener('input', (e) => {
+            config.size = parseInt(e.target.value);
+            document.getElementById('val-size').textContent = config.size + 'px';
+            localStorage.setItem('peek_size', config.size);
+        });
+
+        inputInterval.addEventListener('input', (e) => {
+            config.interval = parseInt(e.target.value);
+            document.getElementById('val-interval').textContent = config.interval + '秒';
+            localStorage.setItem('peek_interval', config.interval);
+            resetTimer();
+        });
+
+        inputDuration.addEventListener('input', (e) => {
+            config.duration = parseFloat(e.target.value);
+            document.getElementById('val-duration').textContent = config.duration.toFixed(1) + '秒';
+            localStorage.setItem('peek_duration', config.duration);
+        });
+
+        inputDepth.addEventListener('input', (e) => {
+            config.depth = parseInt(e.target.value);
+            document.getElementById('val-depth').textContent = config.depth + '%';
+            localStorage.setItem('peek_depth', config.depth);
+        });
+
+        inputVariance.addEventListener('input', (e) => {
+            config.variance = parseInt(e.target.value);
+            document.getElementById('val-variance').textContent = config.variance + '%';
+            localStorage.setItem('peek_variance', config.variance);
+        });
+
+        inputSound.addEventListener('change', (e) => {
+            config.soundEnabled = e.target.checked;
+            localStorage.setItem('peek_sound', config.soundEnabled);
+        });
+
+        // ファイルアップロード処理
+        mediaInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const isVideo = file.type.startsWith('video');
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                config.mediaUrl = event.target.result;
+                config.mediaType = isVideo ? 'video' : 'image';
+                localStorage.setItem('peek_media', config.mediaUrl);
+                localStorage.setItem('peek_type', config.mediaType);
+                updatePreview();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function updatePreview() {
+            previewBox.innerHTML = '';
+            if (config.mediaType === 'video') {
+                const vid = document.createElement('video');
+                vid.src = config.mediaUrl;
+                vid.muted = true;
+                vid.autoplay = true;
+                vid.loop = true;
+                previewBox.appendChild(vid);
+            } else {
+                const img = document.createElement('img');
+                img.src = config.mediaUrl;
+                previewBox.appendChild(img);
+            }
+        }
+
+        // Web Audio APIによる効果音合成
+        let audioCtx = null;
+        function playPopSound(type = 'pop') {
+            if (!config.soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'surprise') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.linearRampToValueAtTime(200, now + 0.2);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        // ひょっこりアニメーション本体
+        let timer = null;
+
+        function triggerPeek() {
+            if (document.hidden) {
+                scheduleNext();
+                return;
+            }
+
+            const sides = ['top', 'bottom', 'left', 'right'];
+            const side = sides[Math.floor(Math.random() * sides.length)];
+
+            const el = document.createElement('div');
+            el.className = 'peek-character';
+            let mediaEl;
+            if (config.mediaType === 'video') {
+                mediaEl = document.createElement('video');
+                mediaEl.src = config.mediaUrl;
+                mediaEl.muted = true;
+                mediaEl.autoplay = true;
+                mediaEl.loop = true;
+                mediaEl.playsInline = true;
+            } else {
+                mediaEl = document.createElement('img');
+                mediaEl.src = config.mediaUrl;
+            }
+            mediaEl.style.width = config.size + 'px';
+            mediaEl.style.height = 'auto';
+            el.appendChild(mediaEl);
+            stage.appendChild(el);
+
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const size = config.size;
+
+            // 揺らぎ計算
+            const varianceOffset = (Math.random() * 2 - 1) * config.variance;
+            const currentDepthPercent = Math.min(Math.max(config.depth + varianceOffset, 10), 95);
+            const depthPx = (size * currentDepthPercent) / 100;
+
+            let startTransform = '';
+            let hideTransform = '';
+            let showTransform = '';
+
+            if (side === 'top') {
+                const x = Math.random() * (vw - size);
+                el.style.left = x + 'px';
+                el.style.top = -size + 'px';
+                hideTransform = `translateY(0px) rotate(180deg)`;
+                showTransform = `translateY(${depthPx}px) rotate(180deg)`;
+            } else if (side === 'bottom') {
+                const x = Math.random() * (vw - size);
+                el.style.left = x + 'px';
+                el.style.bottom = -size + 'px';
+                hideTransform = `translateY(0px)`;
+                showTransform = `translateY(-${depthPx}px)`;
+            } else if (side === 'left') {
+                const y = Math.random() * (vh - size);
+                el.style.top = y + 'px';
+                el.style.left = -size + 'px';
+                hideTransform = `translateX(0px) rotate(45deg)`;
+                showTransform = `translateX(${depthPx}px) rotate(15deg)`;
+            } else if (side === 'right') {
+                const y = Math.random() * (vh - size);
+                el.style.top = y + 'px';
+                el.style.right = -size + 'px';
+                hideTransform = `translateX(0px) rotate(-45deg)`;
+                showTransform = `translateX(-${depthPx}px) rotate(-15deg)`;
+            }
+
+            el.style.transform = hideTransform;
+
+            // 登場
+            requestAnimationFrame(() => {
+                playPopSound('pop');
+                el.style.transform = showTransform;
+            });
+
+            let isDismissed = false;
+            const dismiss = (fast = false) => {
+                if (isDismissed) return;
+                isDismissed = true;
+                if (!fast) playPopSound('surprise');
+                el.style.transform = hideTransform;
+                setTimeout(() => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, fast ? 200 : 400);
+            };
+
+            el.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                dismiss(true);
+            });
+
+            // 滞在タイマー
+            const stayTime = (config.duration + (Math.random() * 1 - 0.5)) * 1000;
+            setTimeout(() => {
+                dismiss(false);
+            }, Math.max(800, stayTime));
+
+            scheduleNext();
+        }
+
+        function scheduleNext() {
+            const nextTime = (Math.random() * (config.interval - 1) + 1) * 1000;
+            clearTimeout(timer);
+            timer = setTimeout(triggerPeek, Math.max(1000, nextTime));
+        }
+
+        function resetTimer() {
+            clearTimeout(timer);
+            scheduleNext();
+        }
+
+        // 初回起動
+        scheduleNext();
+    </script>
+</body>
+</html>
