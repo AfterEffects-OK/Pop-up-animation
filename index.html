@@ -214,8 +214,8 @@
             <!-- 効果音スイッチ & 音量調整 -->
             <div class="space-y-1.5 pt-1 border-t border-gray-800">
                 <div class="flex items-center justify-between text-xs">
-                    <label for="sound-toggle" class="font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center gap-1.5">
-                        <span id="sound-icon" class="text-base">🔊</span> 効果音（SE）
+                    <label for="sound-toggle" class="font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center gap-1.5 select-none">
+                        <span id="sound-icon" class="text-base cursor-pointer hover:scale-125 transition-transform" title="クリックで切り替え">🔊</span> 効果音（SE）
                     </label>
                     <input type="checkbox" id="sound-toggle" checked class="w-4 h-4 accent-blue-500 cursor-pointer">
                 </div>
@@ -575,6 +575,14 @@
             saveSettingsToStorage();
         });
 
+        // アイコンをクリックした時にもチェックボックスの状態を反転させる
+        soundicon.addEventListener('click', () => {
+            soundToggle.checked = !soundToggle.checked;
+            CONFIG.soundEnabled = soundToggle.checked;
+            updateSoundIcon();
+            saveSettingsToStorage();
+        });
+
         volumeRange.addEventListener('input', (e) => {
             CONFIG.volume = parseFloat(e.target.value);
             volumeVal.textContent = `${Math.round(CONFIG.volume * 100)}%`;
@@ -589,6 +597,7 @@
                 reader.onload = (event) => {
                     CONFIG.characterImg = event.target.result;
                     previewImg.src = CONFIG.characterImg;
+                    saveSettingsToSourceOrStorage(); // saveSettingsToStorage
                     saveSettingsToStorage();
                 };
                 reader.readAsDataURL(file);
