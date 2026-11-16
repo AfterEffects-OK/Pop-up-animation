@@ -576,7 +576,7 @@
         });
 
         // アイコンをクリックした時にもチェックボックスの状態を反転させる
-        soundicon.addEventListener('click', () => {
+        soundIcon.addEventListener('click', () => {
             soundToggle.checked = !soundToggle.checked;
             CONFIG.soundEnabled = soundToggle.checked;
             updateSoundIcon();
@@ -597,7 +597,6 @@
                 reader.onload = (event) => {
                     CONFIG.characterImg = event.target.result;
                     previewImg.src = CONFIG.characterImg;
-                    saveSettingsToSourceOrStorage(); // saveSettingsToStorage
                     saveSettingsToStorage();
                 };
                 reader.readAsDataURL(file);
