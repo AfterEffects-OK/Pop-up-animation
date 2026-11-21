@@ -29,16 +29,15 @@
             overflow: hidden;
         }
 
-        /* 出現キャラクター */
+        /* 出現キャラクター共通 */
         .peek-character {
             position: absolute;
             pointer-events: auto;
             cursor: pointer;
-            will-change: transform;
             display: flex;
             align-items: center;
             justify-content: center;
-            /* GPUアクセラレーションの強制とスムーズ化 */
+            will-change: transform;
             transform: translateZ(0);
         }
 
@@ -50,6 +49,34 @@
             pointer-events: none;
         }
 
+        /* 1. 登場用アニメーション（オーバーシュートあり） */
+        @keyframes peekIn {
+            0% {
+                transform: var(--trans-hide) translateZ(0);
+            }
+            100% {
+                transform: var(--trans-show) translateZ(0);
+            }
+        }
+
+        /* 2. 退場用アニメーション（オーバーシュートなし・スーッと隠れる） */
+        @keyframes peekOut {
+            0% {
+                transform: var(--trans-show) translateZ(0);
+            }
+            100% {
+                transform: var(--trans-hide) translateZ(0);
+            }
+        }
+
+        .peek-character.animating-in {
+            animation: peekIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .peek-character.animating-out {
+            animation: peekOut 0.35s cubic-bezier(0.4, 0, 1, 1) forwards;
+        }
+
         /* 設定ボタン（右上の歯車） */
         #settings-btn {
             position: fixed;
@@ -57,22 +84,23 @@
             right: 20px;
             width: 44px;
             height: 44px;
-            background: rgba(0, 0, 0, 0.4);
+            background: transparent;
             color: white;
-            border: 2px solid rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 10000;
-            transition: background 0.2s, transform 0.2s;
+            transition: background 0.2s, transform 0.2s, border-color 0.2s;
             opacity: 0.3;
         }
 
         #settings-btn:hover {
             opacity: 1;
             background: rgba(0, 0, 0, 0.8);
+            border-color: rgba(255, 255, 255, 0.8);
             transform: scale(1.05);
         }
 
@@ -143,6 +171,36 @@
             color: #ccc;
         }
 
+        .seg-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .seg-btn {
+            padding: 8px 10px;
+            background: #2a2a3d;
+            border: 1px solid #444;
+            color: #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            line-height: 1.35;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .seg-btn:hover {
+            background: #34344c;
+            color: #fff;
+        }
+
+        .seg-btn.active {
+            background: #6366f1;
+            border-color: #818cf8;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
         .form-range {
             width: 100%;
             accent-color: #6366f1;
@@ -166,6 +224,7 @@
             transition: background 0.2s;
             width: 100%;
             box-sizing: border-box;
+            margin-bottom: 8px;
         }
 
         .file-upload-label:hover {
@@ -176,16 +235,85 @@
             display: none;
         }
 
-        .preview-box {
-            margin-top: 8px;
-            text-align: center;
-            max-height: 100px;
-            overflow: hidden;
+        /* 登録キャラクター一覧のプレビューエリア（チェック選択対応） */
+        .character-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 4px;
+            background: #151522;
+            border-radius: 8px;
+            border: 1px solid #333;
         }
 
-        .preview-box img, .preview-box video {
-            max-height: 80px;
+        .character-item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #2a2a3d;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+
+        .character-info-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .character-thumb {
+            width: 44px;
+            height: 44px;
+            background: #1a1a26;
             border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .character-thumb img,
+        .character-thumb video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .character-label-text {
+            font-size: 0.85rem;
+            color: #ddd;
+        }
+
+        .character-controls-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .character-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #6366f1;
+            cursor: pointer;
+        }
+
+        .character-delete-btn {
+            background: rgba(220, 38, 38, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .character-delete-btn:hover {
+            background: rgba(220, 38, 38, 1);
         }
     </style>
 </head>
@@ -205,12 +333,30 @@
                 <button class="close-btn" id="close-modal">&times;</button>
             </div>
 
-            <!-- キャラクター / 動画選択 -->
+            <!-- キャラクター / 動画リスト管理 -->
             <div class="form-group">
-                <label>キャラを選択（画像 または 透過WebM動画）</label>
-                <label for="media-input" class="file-upload-label">ファイルを選択</label>
+                <label>登録キャラクター一覧（登場の有効/無効をチェックで切り替え）</label>
+                <label for="media-input" class="file-upload-label">+ キャラクターを追加</label>
                 <input type="file" id="media-input" accept="image/*,video/webm,video/mp4">
-                <div class="preview-box" id="preview-box"></div>
+                <div class="character-list-container" id="character-list-container"></div>
+            </div>
+
+            <!-- 左右出現時の向き -->
+            <div class="form-group">
+                <label>左右出現時の向き</label>
+                <div class="seg-group" id="side-orientation-group" role="group" aria-label="左右出現時の向き">
+                    <button type="button" class="seg-btn" data-value="head-in">頭を内側（±90°＋ランダム）</button>
+                    <button type="button" class="seg-btn" data-value="tilt">軽く傾き（従来：±ランダム）</button>
+                </div>
+            </div>
+
+            <!-- 同時表示数 -->
+            <div class="form-group">
+                <div class="flex-row">
+                    <label>同時出現の最大数</label>
+                    <span id="val-max-count">1個</span>
+                </div>
+                <input type="range" id="input-max-count" class="form-range" min="1" max="5" value="1">
             </div>
 
             <!-- キャラサイズ -->
@@ -267,10 +413,36 @@
     </div>
 
     <script>
+        // デフォルトのSVGキャラクター
+        const defaultSvgUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="110" r="70" fill="%23FFD1DC"/><ellipse cx="70" cy="45" rx="14" ry="32" fill="%23FFB6C1" transform="rotate(-10 70 45)"/><ellipse cx="70" cy="45" rx="8" ry="22" fill="%23FF91A4" transform="rotate(-10 70 45)"/><ellipse cx="130" cy="45" rx="14" ry="32" fill="%23FFB6C1" transform="rotate(10 130 45)"/><ellipse cx="130" cy="45" rx="8" ry="22" fill="%23FF91A4" transform="rotate(10 130 45)"/><ellipse cx="75" cy="105" rx="10" ry="13" fill="%234A3B32"/><circle cx="72" cy="100" r="4" fill="white"/><circle cx="78" cy="110" r="1.5" fill="white"/><ellipse cx="125" cy="105" rx="10" ry="13" fill="%234A3B32"/><circle cx="122" cy="100" r="4" fill="white"/><circle cx="128" cy="110" r="1.5" fill="white"/><polygon points="100,118 95,112 105,112" fill="%23FF6B8B"/><path d="M 90 123 Q 100 132 110 123" stroke="%234A3B32" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="58" cy="122" rx="12" ry="7" fill="%23FF8DA1" opacity="0.6"/><ellipse cx="142" cy="122" rx="12" ry="7" fill="%23FF8DA1" opacity="0.6"/></svg>';
+
+        // キャラクターリストの復元（enabledプロパティの補完・初期移行対応）
+        let savedCharacters;
+        try {
+            savedCharacters = JSON.parse(localStorage.getItem('peek_character_list'));
+        } catch(e) {
+            savedCharacters = null;
+        }
+
+        if (!savedCharacters || !Array.isArray(savedCharacters) || savedCharacters.length === 0) {
+            const oldMedia = localStorage.getItem('peek_media');
+            const oldType = localStorage.getItem('peek_type');
+            if (oldMedia) {
+                savedCharacters = [{ url: oldMedia, type: oldType || 'image', enabled: true }];
+            } else {
+                savedCharacters = [{ url: defaultSvgUrl, type: 'image', enabled: true }];
+            }
+        } else {
+            savedCharacters.forEach(c => {
+                if (c.enabled === undefined) c.enabled = true;
+            });
+        }
+
         // 設定オブジェクト＆デフォルト値
         const config = {
-            mediaUrl: localStorage.getItem('peek_media') || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="110" r="70" fill="%23FFD1DC"/><ellipse cx="70" cy="45" rx="14" ry="32" fill="%23FFB6C1" transform="rotate(-10 70 45)"/><ellipse cx="70" cy="45" rx="8" ry="22" fill="%23FF91A4" transform="rotate(-10 70 45)"/><ellipse cx="130" cy="45" rx="14" ry="32" fill="%23FFB6C1" transform="rotate(10 130 45)"/><ellipse cx="130" cy="45" rx="8" ry="22" fill="%23FF91A4" transform="rotate(10 130 45)"/><ellipse cx="75" cy="105" rx="10" ry="13" fill="%234A3B32"/><circle cx="72" cy="100" r="4" fill="white"/><circle cx="78" cy="110" r="1.5" fill="white"/><ellipse cx="125" cy="105" rx="10" ry="13" fill="%234A3B32"/><circle cx="122" cy="100" r="4" fill="white"/><circle cx="128" cy="110" r="1.5" fill="white"/><polygon points="100,118 95,112 105,112" fill="%23FF6B8B"/><path d="M 90 123 Q 100 132 110 123" stroke="%234A3B32" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="58" cy="122" rx="12" ry="7" fill="%23FF8DA1" opacity="0.6"/><ellipse cx="142" cy="122" rx="12" ry="7" fill="%23FF8DA1" opacity="0.6"/></svg>',
-            mediaType: localStorage.getItem('peek_type') || 'image',
+            characters: savedCharacters,
+            sideOrientation: localStorage.getItem('peek_side_orientation') || 'head-in',
+            maxCount: parseInt(localStorage.getItem('peek_max_count')) || 1,
             size: parseInt(localStorage.getItem('peek_size')) || 150,
             interval: parseInt(localStorage.getItem('peek_interval')) || 10,
             duration: parseFloat(localStorage.getItem('peek_duration')) || 3.0,
@@ -284,6 +456,9 @@
         const settingsModal = document.getElementById('settings-modal');
         const closeModal = document.getElementById('close-modal');
 
+        // 入力要素のバインド
+        const sideOrientationBtns = document.querySelectorAll('#side-orientation-group .seg-btn');
+        const inputMaxCount = document.getElementById('input-max-count');
         const inputSize = document.getElementById('input-size');
         const inputInterval = document.getElementById('input-interval');
         const inputDuration = document.getElementById('input-duration');
@@ -291,8 +466,17 @@
         const inputVariance = document.getElementById('input-variance');
         const inputSound = document.getElementById('input-sound');
         const mediaInput = document.getElementById('media-input');
-        const previewBox = document.getElementById('preview-box');
+        const characterListContainer = document.getElementById('character-list-container');
 
+        function updateSideOrientationUI() {
+            sideOrientationBtns.forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.value === config.sideOrientation);
+            });
+        }
+
+        // UI初期値反映
+        updateSideOrientationUI();
+        inputMaxCount.value = config.maxCount;
         inputSize.value = config.size;
         inputInterval.value = config.interval;
         inputDuration.value = config.duration;
@@ -300,18 +484,35 @@
         inputVariance.value = config.variance;
         inputSound.checked = config.soundEnabled;
 
+        document.getElementById('val-max-count').textContent = config.maxCount + '個';
         document.getElementById('val-size').textContent = config.size + 'px';
         document.getElementById('val-interval').textContent = config.interval + '秒';
         document.getElementById('val-duration').textContent = config.duration.toFixed(1) + '秒';
         document.getElementById('val-depth').textContent = config.depth + '%';
         document.getElementById('val-variance').textContent = config.variance + '%';
 
-        updatePreview();
+        updateCharacterListUI();
 
+        // モーダル開閉
         settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
         closeModal.addEventListener('click', () => settingsModal.classList.remove('active'));
         settingsModal.addEventListener('click', (e) => {
             if (e.target === settingsModal) settingsModal.classList.remove('active');
+        });
+
+        // パラメータ変更イベント
+        sideOrientationBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                config.sideOrientation = btn.dataset.value;
+                localStorage.setItem('peek_side_orientation', config.sideOrientation);
+                updateSideOrientationUI();
+            });
+        });
+
+        inputMaxCount.addEventListener('input', (e) => {
+            config.maxCount = parseInt(e.target.value);
+            document.getElementById('val-max-count').textContent = config.maxCount + '個';
+            localStorage.setItem('peek_max_count', config.maxCount);
         });
 
         inputSize.addEventListener('input', (e) => {
@@ -350,37 +551,107 @@
             localStorage.setItem('peek_sound', config.soundEnabled);
         });
 
+        // ファイルアップロード処理
         mediaInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const isVideo = file.type.startsWith('video');
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                config.mediaUrl = event.target.result;
-                config.mediaType = isVideo ? 'video' : 'image';
-                localStorage.setItem('peek_media', config.mediaUrl);
-                localStorage.setItem('peek_type', config.mediaType);
-                updatePreview();
-            };
-            reader.readAsDataURL(file);
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            let loadedCount = 0;
+            files.forEach(file => {
+                const isVideo = file.type.startsWith('video');
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    config.characters.push({
+                        url: event.target.result,
+                        type: isVideo ? 'video' : 'image',
+                        enabled: true
+                    });
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        saveAndRefreshCharacters();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+            mediaInput.value = '';
         });
 
-        function updatePreview() {
-            previewBox.innerHTML = '';
-            if (config.mediaType === 'video') {
-                const vid = document.createElement('video');
-                vid.src = config.mediaUrl;
-                vid.muted = true;
-                vid.autoplay = true;
-                vid.loop = true;
-                previewBox.appendChild(vid);
-            } else {
-                const img = document.createElement('img');
-                img.src = config.mediaUrl;
-                previewBox.appendChild(img);
-            }
+        function saveAndRefreshCharacters() {
+            localStorage.setItem('peek_character_list', JSON.stringify(config.characters));
+            updateCharacterListUI();
         }
 
+        function removeCharacter(index) {
+            if (config.characters.length <= 1) {
+                alert('キャラクターは最低1体登録しておく必要があります。');
+                return;
+            }
+            config.characters.splice(index, 1);
+            saveAndRefreshCharacters();
+        }
+
+        function updateCharacterListUI() {
+            characterListContainer.innerHTML = '';
+            config.characters.forEach((char, index) => {
+                const row = document.createElement('div');
+                row.className = 'character-item-row';
+
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'character-info-left';
+
+                const thumb = document.createElement('div');
+                thumb.className = 'character-thumb';
+                let mediaEl;
+                if (char.type === 'video') {
+                    mediaEl = document.createElement('video');
+                    mediaEl.src = char.url;
+                    mediaEl.muted = true;
+                    mediaEl.autoplay = true;
+                    mediaEl.loop = true;
+                } else {
+                    mediaEl = document.createElement('img');
+                    mediaEl.src = char.url;
+                }
+                thumb.appendChild(mediaEl);
+                leftDiv.appendChild(thumb);
+
+                const labelText = document.createElement('span');
+                labelText.className = 'character-label-text';
+                labelText.textContent = `キャラ #${index + 1} (${char.type === 'video' ? '動画' : '画像'})`;
+                leftDiv.appendChild(labelText);
+
+                row.appendChild(leftDiv);
+
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'character-controls-right';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'character-checkbox';
+                checkbox.checked = char.enabled;
+                checkbox.title = '登場させる';
+                checkbox.addEventListener('change', (e) => {
+                    config.characters[index].enabled = e.target.checked;
+                    saveAndRefreshCharacters();
+                });
+                rightDiv.appendChild(checkbox);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'character-delete-btn';
+                delBtn.textContent = '削除';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeCharacter(index);
+                });
+                rightDiv.appendChild(delBtn);
+
+                row.appendChild(rightDiv);
+
+                characterListContainer.appendChild(row);
+            });
+        }
+
+        // Web Audio APIによる効果音合成
         let audioCtx = null;
         function playPopSound(type = 'pop') {
             if (!config.soundEnabled) return;
@@ -419,6 +690,7 @@
             }
         }
 
+        // ひょっこりアニメーション本体
         let timer = null;
 
         function triggerPeek() {
@@ -427,102 +699,138 @@
                 return;
             }
 
-            const sides = ['top', 'bottom', 'left', 'right'];
-            const side = sides[Math.floor(Math.random() * sides.length)];
+            const activeCharacters = config.characters.filter(c => c.enabled);
 
-            const el = document.createElement('div');
-            el.className = 'peek-character';
-            let mediaEl;
-            if (config.mediaType === 'video') {
-                mediaEl = document.createElement('video');
-                mediaEl.src = config.mediaUrl;
-                mediaEl.muted = true;
-                mediaEl.autoplay = true;
-                mediaEl.loop = true;
-                mediaEl.playsInline = true;
-            } else {
-                mediaEl = document.createElement('img');
-                mediaEl.src = config.mediaUrl;
-            }
-            mediaEl.style.width = config.size + 'px';
-            mediaEl.style.height = 'auto';
-            el.appendChild(mediaEl);
-            stage.appendChild(el);
+            if (stage.children.length < config.maxCount && activeCharacters.length > 0) {
+                const randomChar = activeCharacters[Math.floor(Math.random() * activeCharacters.length)];
 
-            const vw = window.innerWidth;
-            const vh = window.innerHeight;
-            const size = config.size;
+                const sides = ['top', 'bottom', 'left', 'right'];
+                const side = sides[Math.floor(Math.random() * sides.length)];
 
-            // 揺らぎ計算（深さ・角度）
-            const varianceOffset = (Math.random() * 2 - 1) * config.variance;
-            const currentDepthPercent = Math.min(Math.max(config.depth + varianceOffset, 10), 95);
-            const depthPx = (size * currentDepthPercent) / 100;
-            const randomTilt = (Math.random() * 2 - 1) * 8; // -8度 〜 +8度
-
-            let hideAxisVal = -size + 'px';
-            let showAxisVal = depthPx + 'px';
-            let baseRot = 0;
-
-            if (side === 'top') {
-                el.style.left = (Math.random() * (vw - size)) + 'px';
-                el.style.top = hideAxisVal;
-                baseRot = 180;
-            } else if (side === 'bottom') {
-                el.style.left = (Math.random() * (vw - size)) + 'px';
-                el.style.bottom = hideAxisVal;
-                baseRot = 0;
-            } else if (side === 'left') {
-                el.style.top = (Math.random() * (vh - size)) + 'px';
-                el.style.left = hideAxisVal;
-                baseRot = 15;
-            } else if (side === 'right') {
-                el.style.top = (Math.random() * (vh - size)) + 'px';
-                el.style.right = hideAxisVal;
-                baseRot = -15;
-            }
-
-            const finalRot = baseRot + randomTilt;
-            const targetTranslate = side === 'top' || side === 'bottom' ? `translateY(${showAxisVal})` : `translateX(${side === 'left' ? showAxisVal : '-' + showAxisVal})` ;
-            const hideTranslate = side === 'top' || side === 'bottom' ? `translateY(0px)` : `translateX(0px)`;
-
-            // 一意の動的アニメーション名を作成して適用（CSSアニメーション化による最高峰の滑らかさ）
-            const animName = 'peekAnim_' + Math.random().toString(36.substring(2, 9));
-            const stayMs = Math.max(800, (config.duration + (Math.random() * 1 - 0.5)) * 1000);
-            const totalDurationSec = (stayMs / 1000) + 0.6; // 登場・退場各0.3秒
-
-            const styleTag = document.createElement('style');
-            styleTag.innerHTML = `
-                @keyframes ${animName} {
-                    0% { transform: ${hideTranslate} rotate(${baseRot + (side === 'left' ? 30 : side === 'right' ? -30 : 0)}deg); }
-                    12% { transform: ${targetTranslate} rotate(${finalRot}deg); }
-                    22% { transform: ${targetTranslate} rotate(${finalRot}deg); }
-                    80% { transform: ${targetTranslate} rotate(${finalRot}deg); }
-                    100% { transform: ${hideTranslate} rotate(${baseRot}deg); }
+                const el = document.createElement('div');
+                el.className = 'peek-character';
+                let mediaEl;
+                if (randomChar.type === 'video') {
+                    mediaEl = document.createElement('video');
+                    mediaEl.src = randomChar.url;
+                    mediaEl.muted = true;
+                    mediaEl.autoplay = true;
+                    mediaEl.loop = true;
+                    mediaEl.playsInline = true;
+                } else {
+                    mediaEl = document.createElement('img');
+                    mediaEl.src = randomChar.url;
                 }
-                #${animName} {
-                    animation: ${animName} ${totalDurationSec}s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                mediaEl.style.width = config.size + 'px';
+                mediaEl.style.height = 'auto';
+                el.appendChild(mediaEl);
+                stage.appendChild(el);
+
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const size = config.size;
+
+                const varianceOffset = (Math.random() * 2 - 1) * config.variance;
+                const currentDepthPercent = Math.min(Math.max(config.depth + varianceOffset, 10), 95);
+                const depthPx = (size * currentDepthPercent) / 100;
+
+                // ランダム角度（-25度 〜 +25度）
+                const randomTilt = (Math.random() * 2 - 1) * 25;
+
+                let hideTransform = '';
+                let showTransform = '';
+                let exitHideTransform = '';
+
+                if (side === 'top') {
+                    const x = Math.random() * (vw - size);
+                    el.style.left = x + 'px';
+                    el.style.top = -size + 'px';
+                    const topRot = 180 + randomTilt;
+                    hideTransform = `translateY(0px) rotate(180deg)`;
+                    showTransform = `translateY(${depthPx}px) rotate(${topRot}deg)`;
+                    exitHideTransform = `translateY(0px) rotate(${topRot}deg)`;
+                } else if (side === 'bottom') {
+                    const x = Math.random() * (vw - size);
+                    el.style.left = x + 'px';
+                    el.style.bottom = -size + 'px';
+                    const bottomRot = randomTilt;
+                    hideTransform = `translateY(0px) rotate(0deg)`;
+                    showTransform = `translateY(-${depthPx}px) rotate(${bottomRot}deg)`;
+                    exitHideTransform = `translateY(0px) rotate(${bottomRot}deg)`;
+                } else if (side === 'left') {
+                    const y = Math.random() * (vh - size);
+                    el.style.top = y + 'px';
+                    el.style.left = -size + 'px';
+                    // 頭を内側（右・画面中央）に向ける場合は +90° を基準にランダム傾きを加算
+                    const leftBaseRot = config.sideOrientation === 'head-in' ? 90 : 0;
+                    const leftRot = leftBaseRot + randomTilt;
+                    hideTransform = `translateX(0px) rotate(${leftBaseRot}deg)`;
+                    showTransform = `translateX(${depthPx}px) rotate(${leftRot}deg)`;
+                    exitHideTransform = `translateX(0px) rotate(${leftRot}deg)`;
+                } else if (side === 'right') {
+                    const y = Math.random() * (vh - size);
+                    el.style.top = y + 'px';
+                    el.style.right = -size + 'px';
+                    // 頭を内側（左・画面中央）に向ける場合は -90° を基準にランダム傾きを加算
+                    const rightBaseRot = config.sideOrientation === 'head-in' ? -90 : 0;
+                    const rightRot = rightBaseRot + randomTilt;
+                    hideTransform = `translateX(0px) rotate(${rightBaseRot}deg)`;
+                    showTransform = `translateX(-${depthPx}px) rotate(${rightRot}deg)`;
+                    exitHideTransform = `translateX(0px) rotate(${rightRot}deg)`;
                 }
-            `;
-            document.head.appendChild(styleTag);
-            el.id = animName;
 
-            playPopSound('pop');
+                el.style.setProperty('--trans-hide', hideTransform);
+                el.style.setProperty('--trans-show', showTransform);
 
-            let isRemoved = false;
-            const removeEl = () => {
-                if (isRemoved) return;
-                isRemoved = true;
-                if (el.parentNode) el.parentNode.removeChild(el);
-                if (styleTag.parentNode) styleTag.parentNode.removeChild(styleTag);
-            };
+                playPopSound('pop');
 
-            el.addEventListener('pointerdown', (e) => {
-                e.stopPropagation();
-                playPopSound('surprise');
-                removeEl();
-            });
+                requestAnimationFrame(() => {
+                    el.classList.add('animating-in');
+                });
 
-            setTimeout(removeEl, totalDurationSec * 1000);
+                let isDismissed = false;
+
+                const dismissEarly = () => {
+                    if (isDismissed) return;
+                    isDismissed = true;
+                    playPopSound('surprise');
+
+                    el.classList.remove('animating-in');
+                    void el.offsetWidth;
+                    el.style.setProperty('--trans-hide', exitHideTransform);
+                    el.classList.add('animating-out');
+
+                    el.addEventListener('animationend', () => {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    }, { once: true });
+                };
+
+                el.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    dismissEarly();
+                });
+
+                el.addEventListener('animationend', (e) => {
+                    if (e.animationName === 'peekIn' && !isDismissed) {
+                        const stayTimeMs = (config.duration + (Math.random() * 1 - 0.5)) * 1000;
+                        
+                        setTimeout(() => {
+                            if (isDismissed) return;
+                            isDismissed = true;
+
+                            el.style.setProperty('--trans-hide', exitHideTransform);
+                            el.classList.remove('animating-in');
+                            void el.offsetWidth;
+                            el.classList.add('animating-out');
+                        }, Math.max(1000, stayTimeMs));
+                    } else if (e.animationName === 'peekOut') {
+                        if (el.parentNode) {
+                            el.parentNode.removeChild(el);
+                        }
+                    }
+                });
+            }
+
             scheduleNext();
         }
 
@@ -537,6 +845,7 @@
             scheduleNext();
         }
 
+        // 初回起動
         scheduleNext();
     </script>
 </body>
